@@ -27,6 +27,45 @@ function formatSessionTime(startedAt: string, endedAt: string) {
   return `${formatDateTime(startedAt)} - ${formatDateTime(endedAt)}`;
 }
 
+function SessionTimeCell({
+  startedAt,
+  endedAt,
+}: {
+  startedAt: string;
+  endedAt: string;
+}) {
+  return (
+    <div
+      className="grid min-w-0 grid-cols-[14px_minmax(0,1fr)] items-center gap-2"
+      title={formatSessionTime(startedAt, endedAt)}
+    >
+      <div className="relative h-[50px]">
+        <span className="absolute left-[6px] top-[8px] h-[34px] w-px rounded-full bg-border" />
+        <span className="absolute left-[2px] top-[4px] h-2.5 w-2.5 rounded-full bg-code-blue" />
+        <span className="absolute bottom-[4px] left-[2px] h-2.5 w-2.5 rounded-full bg-token-green" />
+      </div>
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <div className="flex min-w-0 items-baseline gap-1.5 whitespace-nowrap">
+          <span className="w-7 shrink-0 text-[10px] font-black uppercase text-muted">
+            Start
+          </span>
+          <span className="truncate font-mono text-xs font-black text-muted">
+            {formatDateTime(startedAt)}
+          </span>
+        </div>
+        <div className="flex min-w-0 items-baseline gap-1.5 whitespace-nowrap">
+          <span className="w-7 shrink-0 text-[10px] font-black uppercase text-muted">
+            End
+          </span>
+          <span className="truncate font-mono text-xs font-black text-muted">
+            {formatDateTime(endedAt)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function DashboardContent({
   viewer,
   dashboard,
@@ -263,11 +302,11 @@ export function DashboardContent({
         </div>
         {dashboard.recentSessions.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[960px] table-fixed border-separate border-spacing-0 text-left text-sm">
+            <table className="w-full min-w-[920px] table-fixed border-separate border-spacing-0 text-left text-sm">
               <colgroup>
                 <col className="w-[12rem]" />
                 <col className="w-[7rem]" />
-                <col className="w-[14rem]" />
+                <col className="w-[11.5rem]" />
                 <col className="w-[5.5rem]" />
                 <col className="w-[5.5rem]" />
                 <col className="w-[6.5rem]" />
@@ -314,8 +353,11 @@ export function DashboardContent({
                     <td className="border-b border-border px-3 py-3 font-black">
                       {session.providerLabel}
                     </td>
-                    <td className="border-b border-border px-3 py-3 font-bold text-muted">
-                      {formatSessionTime(session.startedAt, session.endedAt)}
+                    <td className="border-b border-border px-3 py-3">
+                      <SessionTimeCell
+                        startedAt={session.startedAt}
+                        endedAt={session.endedAt}
+                      />
                     </td>
                     <td className="whitespace-nowrap border-b border-border px-3 py-3 text-right font-mono font-black">
                       {numberFormatter.format(session.userTurnCount)}
