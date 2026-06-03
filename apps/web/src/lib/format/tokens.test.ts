@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { formatTokenAmount } from "./tokens.ts";
+import { formatTokenAmount, formatTokenSharePercent } from "./tokens.ts";
 
 test("formatTokenAmount keeps one decimal place for compact token units", () => {
   assert.equal(formatTokenAmount(7_800_000), "7.8M");
@@ -12,4 +12,10 @@ test("formatTokenAmount keeps one decimal place for compact token units", () => 
 
 test("formatTokenAmount keeps plain formatting below one thousand", () => {
   assert.equal(formatTokenAmount(999), "999");
+});
+
+test("formatTokenSharePercent keeps one decimal place", () => {
+  assert.equal(formatTokenSharePercent(7_800_000, 225_000_000), "3.5");
+  assert.equal(formatTokenSharePercent(0, 225_000_000), "0.0");
+  assert.equal(formatTokenSharePercent(10, 0), "0.0");
 });

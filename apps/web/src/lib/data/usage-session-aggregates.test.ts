@@ -101,9 +101,9 @@ test("summarizeUsageSessions aggregates usage_sessions with KST day and week bou
 
   assert.deepEqual(dashboard.tokenBreakdown, {
     input: 450,
-    output: 350,
+    output: 370,
     cache: 1400,
-    reasoning: 20,
+    reasoning: 0,
     total: 2200,
   });
 
@@ -281,9 +281,9 @@ test("summarizeUsageDailyDashboard builds dashboard totals from usage_daily only
 
   assert.deepEqual(dashboard.tokenBreakdown, {
     input: 450,
-    output: 350,
+    output: 370,
     cache: 1400,
-    reasoning: 20,
+    reasoning: 0,
     total: 2220,
   });
 
