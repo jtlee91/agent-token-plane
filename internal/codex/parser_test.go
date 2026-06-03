@@ -50,6 +50,34 @@ func TestParseSessionFileSummarizesTokenCounts(t *testing.T) {
 	}
 }
 
+func TestParseSessionUsageReturnsTokenCalls(t *testing.T) {
+	parsed, err := ParseSessionUsage(filepath.Join("..", "..", "testdata", "codex", "session.jsonl"))
+	if err != nil {
+		t.Fatalf("ParseSessionUsage() error = %v", err)
+	}
+
+	if len(parsed.Calls) != 2 {
+		t.Fatalf("len(Calls) = %d, want 2", len(parsed.Calls))
+	}
+	first := parsed.Calls[0]
+	if first.CallIndex != 1 || first.OccurredAt != "2026-06-02T14:17:04+09:00" {
+		t.Fatalf("first call identity = %+v, want index 1 at first token_count timestamp", first)
+	}
+	if first.CallKey == "" || len(first.CallKey) != 64 {
+		t.Fatalf("first CallKey = %q, want 64-char hash", first.CallKey)
+	}
+	if first.Tokens.Input != 60 || first.Tokens.Output != 20 || first.Tokens.Cache != 40 || first.Tokens.Reasoning != 5 || first.Tokens.Total != 120 {
+		t.Fatalf("first call tokens = %+v, want last_token_usage normalized tokens", first.Tokens)
+	}
+	second := parsed.Calls[1]
+	if second.Tokens.Input != 110 || second.Tokens.Output != 15 || second.Tokens.Cache != 40 || second.Tokens.Reasoning != 2 || second.Tokens.Total != 165 {
+		t.Fatalf("second call tokens = %+v, want second last_token_usage normalized tokens", second.Tokens)
+	}
+	if parsed.Summary.Tokens.Input != first.Tokens.Input+second.Tokens.Input {
+		t.Fatalf("summary input = %d, want call sum", parsed.Summary.Tokens.Input)
+	}
+}
+
 func TestParseSessionFileRejectsFilesWithoutTokenCounts(t *testing.T) {
 	_, err := ParseSessionFile(filepath.Join("..", "..", "testdata", "codex", "no-token-count.jsonl"))
 	if err == nil {

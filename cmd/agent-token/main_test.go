@@ -195,6 +195,14 @@ func TestRunInspectQuietSuppressesOutputAndStoresState(t *testing.T) {
 	if sessionCount != 1 {
 		t.Fatalf("codex session count = %d, want 1", sessionCount)
 	}
+
+	var callCount int
+	if err := db.QueryRow(`select count(*) from usage_calls where provider = 'codex'`).Scan(&callCount); err != nil {
+		t.Fatalf("select usage_calls count error = %v", err)
+	}
+	if callCount != 2 {
+		t.Fatalf("codex usage call count = %d, want 2", callCount)
+	}
 }
 
 func TestRunInspectPrintsClaudeSessionSummaries(t *testing.T) {
@@ -361,6 +369,23 @@ func TestRunSyncPostsStoredSessions(t *testing.T) {
 			last_parsed_at text not null
 		);
 
+		create table usage_calls (
+			provider text not null,
+			session_hash text not null,
+			call_key text not null,
+			call_index integer not null,
+			occurred_at text not null,
+			model text,
+			input_tokens integer not null,
+			output_tokens integer not null,
+			cache_tokens integer not null,
+			reasoning_tokens integer not null,
+			total_tokens integer not null,
+			source_file_key text not null,
+			updated_at text not null,
+			primary key(provider, session_hash, call_key)
+		);
+
 		insert into sessions (
 			session_hash,
 			provider,
@@ -386,6 +411,52 @@ func TestRunSyncPostsStoredSessions(t *testing.T) {
 			70,
 			4,
 			190,
+			'2026-06-02T13:06:00+09:00'
+		);
+
+		insert into usage_calls (
+			provider,
+			session_hash,
+			call_key,
+			call_index,
+			occurred_at,
+			model,
+			input_tokens,
+			output_tokens,
+			cache_tokens,
+			reasoning_tokens,
+			total_tokens,
+			source_file_key,
+			updated_at
+		) values
+		(
+			'codex',
+			'session-hash',
+			'call-a',
+			1,
+			'2026-06-02T13:01:00+09:00',
+			null,
+			60,
+			10,
+			30,
+			2,
+			100,
+			'file-key',
+			'2026-06-02T13:06:00+09:00'
+		),
+		(
+			'codex',
+			'session-hash',
+			'call-b',
+			2,
+			'2026-06-02T13:02:00+09:00',
+			'gpt-test',
+			40,
+			10,
+			40,
+			2,
+			90,
+			'file-key',
 			'2026-06-02T13:06:00+09:00'
 		);
 	`); err != nil {
@@ -448,8 +519,18 @@ func TestRunSyncPostsStoredSessions(t *testing.T) {
 	if result["sessions_uploaded"].(float64) != 1 {
 		t.Fatalf("sync result = %#v, want one uploaded session", result)
 	}
+	if _, ok := result["calls_uploaded"]; ok {
+		t.Fatalf("sync result should not include calls_uploaded: %#v", result)
+	}
 	if _, ok := requestBody["user_id"]; ok {
 		t.Fatalf("request should not include user_id: %#v", requestBody)
+	}
+	device, ok := requestBody["device"].(map[string]any)
+	if !ok {
+		t.Fatalf("request missing device object: %#v", requestBody)
+	}
+	if device["device_id"] == "" || device["device_label"] == "" || device["platform"] == "" {
+		t.Fatalf("request device = %#v, want populated device fields", device)
 	}
 	sessions, ok := requestBody["sessions"].([]any)
 	if !ok || len(sessions) != 1 {
@@ -461,6 +542,9 @@ func TestRunSyncPostsStoredSessions(t *testing.T) {
 	}
 	if _, ok := session["local_updated_at"]; !ok {
 		t.Fatalf("request session missing local_updated_at: %#v", session)
+	}
+	if _, ok := requestBody["calls"]; ok {
+		t.Fatalf("request should not include calls: %#v", requestBody["calls"])
 	}
 	if strings.Contains(stdout.String(), "secret") {
 		t.Fatalf("sync output leaked sensitive text: %s", stdout.String())
@@ -484,6 +568,9 @@ func TestRunSyncPostsStoredSessions(t *testing.T) {
 	}
 	if result["sessions_uploaded"].(float64) != 0 {
 		t.Fatalf("second sync result = %#v, want zero uploaded sessions", result)
+	}
+	if _, ok := result["calls_uploaded"]; ok {
+		t.Fatalf("second sync result should not include calls_uploaded: %#v", result)
 	}
 	if requestCount != 1 {
 		t.Fatalf("sync request count = %d, want only first sync request", requestCount)

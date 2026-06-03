@@ -200,6 +200,11 @@ Malformed JSON should fail the parse for that file. Empty lines are ignored.
 All providers are normalized into this model:
 
 ```go
+type SessionUsage struct {
+    Summary SessionSummary
+    Calls   []UsageCall
+}
+
 type SessionSummary struct {
     SessionHash   string
     StartedAt     string
@@ -216,6 +221,14 @@ type TokenSummary struct {
     Reasoning int
     Total     int
 }
+
+type UsageCall struct {
+    CallKey    string
+    CallIndex  int
+    OccurredAt string
+    Model      string
+    Tokens     TokenSummary
+}
 ```
 
 Definitions:
@@ -227,9 +240,33 @@ Definitions:
 - `cache`: cached or cache-related input tokens.
 - `reasoning`: reasoning output tokens, when exposed by provider.
 - `total`: provider total when available; otherwise computed total.
+- `call_key`: hashed stable call identifier. Do not store raw request/message
+  IDs remotely unless explicitly allowed later.
 
 All `started_at`, `ended_at`, `updated_at`, `modified_at`, `last_parsed_at`,
-and local `synced_at` values are stored as RFC3339Nano strings in KST.
+local `synced_at`, call `occurred_at`, and call `updated_at` values are stored
+as RFC3339Nano strings in KST.
+
+## Device Identity
+
+Each local installation has one stable device identity.
+
+Generation:
+
+- Generate `device_id` as a random UUID v4.
+- Generate it after successful `token-agent login`, or on the first
+  `token-agent sync` if it does not exist yet.
+- Do not derive `device_id` from hostname or other low-entropy machine values.
+
+Local metadata:
+
+- `device_label`: OS hostname, falling back to `unknown-device`.
+- `platform`: Go `runtime.GOOS`, expected to be `darwin`, `linux`, or
+  `windows` for supported targets.
+
+The device ID is a stable local identifier, not a security boundary. The Edge
+Function validates the UUID shape and binds rows to the authenticated
+`user_id`.
 
 ## Session Hashing
 
@@ -270,6 +307,13 @@ Relevant record shape:
         "output_tokens": 220,
         "reasoning_output_tokens": 133,
         "total_tokens": 16320
+      },
+      "last_token_usage": {
+        "input_tokens": 16100,
+        "cached_input_tokens": 3456,
+        "output_tokens": 220,
+        "reasoning_output_tokens": 133,
+        "total_tokens": 16320
       }
     }
   }
@@ -278,17 +322,25 @@ Relevant record shape:
 
 Parsing rules:
 
-- Read `session_meta.payload.id` as raw session ID.
+- Read `session_meta.payload.id` as raw session ID. If absent, fallback to the
+  filename without `.jsonl`.
 - Count `event_msg.payload.type == "user_message"` as `user_turn_count`.
 - Count `event_msg.payload.type == "token_count"` with usable
   `total_token_usage` as one `llm_call_count`.
 - Prefer `payload.info.total_token_usage`.
 - Fallback to `payload.total_token_usage` for older/variant records.
+- For call-level tokens, prefer `payload.info.last_token_usage`.
+- Fallback to `payload.last_token_usage` for older/variant records.
+- If `last_token_usage` is absent, calculate the call-level usage as the
+  non-negative delta between current and previous cumulative
+  `total_token_usage`.
+- If this is the first usable token count and `last_token_usage` is absent, use
+  the current cumulative `total_token_usage` as that first call.
 - Skip `token_count` records that do not include total token usage.
 - If no usable token count exists in the file, skip the file using
   provider-specific `ErrNoTokenCounts`.
-- Use token usage from the latest usable `token_count` record as the session
-  total. This avoids double-counting cumulative `total_token_usage` snapshots.
+- Build one `UsageCall` per usable `token_count`.
+- Set the session token totals to the sum of normalized call tokens.
 - `started_at` is the timestamp of the first usable `token_count`.
 - `ended_at` is the timestamp of the last usable `token_count`.
 - Convert timestamps to KST.
@@ -345,6 +397,8 @@ Parsing rules:
 - `ended_at` is the latest timestamp among usage entries.
 - Convert timestamps to KST.
 - Deduplicate usage entries before summing tokens.
+- Build one `UsageCall` per deduped usage entry.
+- Preserve `message.model` as call `model` when present.
 
 Claude user prompt detection:
 
@@ -440,6 +494,65 @@ alter table sessions add column synced_at text;
 The first sync after adding `need_sync` may upload all existing sessions once.
 After that, only changed sessions should be uploaded.
 
+### `local_device`
+
+```sql
+create table if not exists local_device (
+  device_id text primary key,
+  device_label text not null,
+  platform text not null,
+  created_at text not null,
+  updated_at text not null
+);
+```
+
+Rules:
+
+- Store exactly one active local device row.
+- Reuse the existing `device_id` across subsequent runs.
+- If hostname or platform changes, update `device_label`, `platform`, and
+  `updated_at`, while preserving `device_id`.
+- Store `created_at` and `updated_at` in KST.
+
+### `usage_calls`
+
+```sql
+create table if not exists usage_calls (
+  provider text not null,
+  session_hash text not null,
+  call_key text not null,
+  call_index integer not null,
+  occurred_at text not null,
+  model text,
+  input_tokens integer not null,
+  output_tokens integer not null,
+  cache_tokens integer not null,
+  reasoning_tokens integer not null,
+  total_tokens integer not null,
+  source_file_key text not null,
+  updated_at text not null,
+  primary key(provider, session_hash, call_key),
+  foreign key(session_hash) references sessions(session_hash)
+);
+```
+
+Indexes:
+
+```sql
+create index if not exists idx_usage_calls_session
+  on usage_calls(provider, session_hash, call_index);
+
+create index if not exists idx_usage_calls_source_file
+  on usage_calls(provider, source_file_key);
+```
+
+When reparsing a changed file:
+
+- Delete existing `usage_calls` rows for the same `provider` and
+  `source_file_key`.
+- Insert the newly parsed call rows.
+- Upsert the owning `sessions` row with the call-summed totals.
+
 ### `source_files`
 
 ```sql
@@ -468,18 +581,57 @@ Incremental local parsing:
   - `size_bytes = os.Stat(path).Size()`
   - `modified_at = os.Stat(path).ModTime().In(KST).Format(RFC3339Nano)`
 - If `source_files` has the same `provider`, `file_key`, `size_bytes`, and
-  `modified_at`, reuse the cached session summary from SQLite.
-- Otherwise parse the file and upsert both `sessions` and `source_files`.
+  `modified_at`, and matching `usage_calls` rows already exist, reuse the
+  cached session summary from SQLite.
+- Otherwise parse the file and upsert `sessions`, `usage_calls`, and
+  `source_files`.
 - If parsing fails with provider-specific "no usage" skip error, delete the
   source file cache row and count the file as skipped.
 
 ## Supabase Remote Schema
 
-Remote table: `public.usage_sessions`.
+Remote device table: `public.usage_devices`.
+
+```sql
+create table public.usage_devices (
+  user_id uuid not null,
+  device_id uuid not null,
+  device_label text not null,
+  platform text not null check (platform in ('darwin', 'linux', 'windows')),
+  first_seen_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now(),
+  primary key (user_id, device_id)
+);
+```
+
+Enable RLS and allow authenticated users to read/write only their own rows:
+
+```sql
+alter table public.usage_devices enable row level security;
+
+create policy "usage_devices_select_own"
+on public.usage_devices
+for select
+using (auth.uid() = user_id);
+
+create policy "usage_devices_insert_own"
+on public.usage_devices
+for insert
+with check (auth.uid() = user_id);
+
+create policy "usage_devices_update_own"
+on public.usage_devices
+for update
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+```
+
+Remote session table: `public.usage_sessions`.
 
 ```sql
 create table public.usage_sessions (
   user_id uuid not null,
+  device_id uuid,
   session_hash text not null,
   provider text not null check (provider in ('codex', 'claude')),
   started_at timestamptz not null,
@@ -533,6 +685,11 @@ The CLI sends:
 
 ```json
 {
+  "device": {
+    "device_id": "8e4c5f92-3d1a-4a73-90a2-8f25a6a3c1b4",
+    "device_label": "jtlee-macbook-pro",
+    "platform": "darwin"
+  },
   "sessions": [
     {
       "session_hash": "hex_sha256",
@@ -555,6 +712,15 @@ The CLI sends:
 Do not include `user_id` in the client payload. The Edge Function must derive
 `user_id` from the authenticated Supabase user.
 
+Sync behavior:
+
+- Read only local `sessions.need_sync = 1`.
+- Ensure a local device exists before building the payload.
+- Do not include local `usage_calls` in the Supabase payload.
+- If no pending sessions exist, return `sessions_uploaded: 0` without making a
+  network request.
+- After the endpoint succeeds, mark the uploaded sessions as synced.
+
 ## Supabase Edge Function
 
 Function slug: `sync-usage`.
@@ -570,15 +736,21 @@ Behavior:
 
 - Reject non-POST with 405.
 - Parse JSON body.
+- Validate `device.device_id` as UUID.
+- Validate `device.device_label` as non-empty string.
+- Validate `device.platform` as `darwin`, `linux`, or `windows`.
 - Validate `sessions` array and each session field.
 - Create Supabase client with project anon key and incoming Authorization
   header.
 - Call `supabase.auth.getUser()` and reject if no user.
+- Upsert `usage_devices` using `user_id,device_id`, setting
+  `last_seen_at = new Date().toISOString()`.
 - Map each session to a row and set `user_id` to `userData.user.id`.
+- Set `device_id` on uploaded session rows.
 - Set remote `synced_at` to `new Date().toISOString()`.
 - Upsert into `usage_sessions` with conflict target:
   `user_id,provider,session_hash`.
-- Return `{ "upserted": rows.length }`.
+- Return `{ "upserted": sessionRows.length }`.
 
 The Edge Function must not trust a client-provided `user_id`.
 
@@ -602,6 +774,7 @@ Allowed local/remote data:
 - User prompt count
 - LLM usage call count
 - Token totals
+- Device ID, label, platform, first seen, and last seen timestamps
 - Local update/sync timestamps
 
 Allowed local-only data:
@@ -609,6 +782,8 @@ Allowed local-only data:
 - `auth.json` with Supabase access and refresh tokens, mode `0600`
 - `source_files.file_key`, which is a hash of absolute local file path
 - JSONL file size and mtime for incremental parsing
+- `usage_calls` call-level timestamps, model names, call hashes, and token
+  totals
 
 ## Test Coverage Requirements
 
@@ -630,13 +805,17 @@ Tests should cover at least:
 - SQLite:
   - audit timestamps are KST
   - existing timestamps normalize to KST on open
+  - local device UUID is created once and reused
   - unchanged source files are reused
+  - call rows are stored and replaced when a source file is reparsed
   - changed source files mark sessions `need_sync = 1`
   - successful sync marks only uploaded sessions synced
 - CLI:
   - default inspect parses both providers
   - `--quiet` suppresses stdout while still writing state
   - sync payload does not include `user_id`
+  - sync payload includes device metadata
+  - sync payload does not include local `usage_calls`
   - second sync after successful upload sends zero sessions and makes no network
     request
   - login does not print passwords, access tokens, or refresh tokens

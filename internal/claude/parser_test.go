@@ -50,6 +50,37 @@ func TestParseSessionFileSummarizesDedupedUsage(t *testing.T) {
 	}
 }
 
+func TestParseSessionUsageReturnsDedupedCalls(t *testing.T) {
+	parsed, err := ParseSessionUsage(filepath.Join("..", "..", "testdata", "claude", "session.jsonl"))
+	if err != nil {
+		t.Fatalf("ParseSessionUsage() error = %v", err)
+	}
+
+	if len(parsed.Calls) != 2 {
+		t.Fatalf("len(Calls) = %d, want 2", len(parsed.Calls))
+	}
+	first := parsed.Calls[0]
+	if first.CallIndex != 1 || first.OccurredAt != "2026-06-02T18:56:40.393+09:00" {
+		t.Fatalf("first call identity = %+v, want first deduped usage timestamp", first)
+	}
+	if first.Model != "claude-opus-4-8" {
+		t.Fatalf("first call model = %q, want claude-opus-4-8", first.Model)
+	}
+	if first.CallKey == "" || len(first.CallKey) != 64 {
+		t.Fatalf("first CallKey = %q, want 64-char hash", first.CallKey)
+	}
+	if first.Tokens.Input != 1798 || first.Tokens.Output != 594 || first.Tokens.Cache != 10502 || first.Tokens.Total != 12894 {
+		t.Fatalf("first call tokens = %+v, want deduped usage tokens", first.Tokens)
+	}
+	second := parsed.Calls[1]
+	if second.Tokens.Input != 2 || second.Tokens.Output != 4071 || second.Tokens.Cache != 13053 || second.Tokens.Total != 17126 {
+		t.Fatalf("second call tokens = %+v, want second usage tokens", second.Tokens)
+	}
+	if parsed.Summary.Tokens.Total != first.Tokens.Total+second.Tokens.Total {
+		t.Fatalf("summary total = %d, want call sum", parsed.Summary.Tokens.Total)
+	}
+}
+
 func TestParseSessionFileCountsOnlyUserPromptsLinkedToUsage(t *testing.T) {
 	summary, err := ParseSessionFile(filepath.Join("..", "..", "testdata", "claude", "leading-context-user.jsonl"))
 	if err != nil {

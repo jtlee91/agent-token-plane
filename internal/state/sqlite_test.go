@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/jtlee/local-agent-usage/internal/codex"
+	"github.com/jtlee/local-agent-usage/internal/usage"
 	_ "modernc.org/sqlite"
 )
 
@@ -57,6 +59,40 @@ func TestUpsertSourceFileStoresAuditTimestampsInKST(t *testing.T) {
 	}
 	if !strings.HasSuffix(lastParsedAt, "+09:00") {
 		t.Fatalf("last_parsed_at = %q, want KST +09:00 timestamp", lastParsedAt)
+	}
+}
+
+func TestEnsureLocalDeviceCreatesAndReusesDevice(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "usage.sqlite")
+	store, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer store.Close()
+
+	first, err := store.EnsureLocalDevice(context.Background())
+	if err != nil {
+		t.Fatalf("EnsureLocalDevice() error = %v", err)
+	}
+	if len(first.DeviceID) != 36 {
+		t.Fatalf("DeviceID = %q, want UUID string", first.DeviceID)
+	}
+	if first.DeviceLabel == "" {
+		t.Fatalf("DeviceLabel is empty")
+	}
+	if first.Platform != runtime.GOOS {
+		t.Fatalf("Platform = %q, want %q", first.Platform, runtime.GOOS)
+	}
+	if !strings.HasSuffix(first.CreatedAt, "+09:00") || !strings.HasSuffix(first.UpdatedAt, "+09:00") {
+		t.Fatalf("device timestamps = %+v, want KST timestamps", first)
+	}
+
+	second, err := store.EnsureLocalDevice(context.Background())
+	if err != nil {
+		t.Fatalf("EnsureLocalDevice(second) error = %v", err)
+	}
+	if second.DeviceID != first.DeviceID {
+		t.Fatalf("second DeviceID = %q, want %q", second.DeviceID, first.DeviceID)
 	}
 }
 
@@ -112,6 +148,164 @@ func TestUpsertSourceFileMarksSessionPendingSync(t *testing.T) {
 	}
 	if len(pending) != 1 || pending[0].SessionHash != "session-hash" {
 		t.Fatalf("pending sessions after second upsert = %+v, want session-hash", pending)
+	}
+}
+
+func TestUpsertParsedSourceFileStoresUsageCalls(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "usage.sqlite")
+	store, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer store.Close()
+
+	parsed := usage.SessionUsage{
+		Summary: usage.SessionSummary{
+			SessionHash:   "session-hash",
+			StartedAt:     "2026-06-02T16:00:00+09:00",
+			EndedAt:       "2026-06-02T16:10:00+09:00",
+			UserTurnCount: 1,
+			LLMCallCount:  2,
+			Tokens: usage.TokenSummary{
+				Input:  15,
+				Output: 35,
+				Cache:  5,
+				Total:  55,
+			},
+		},
+		Calls: []usage.UsageCall{
+			{
+				CallKey:    "call-a",
+				CallIndex:  1,
+				OccurredAt: "2026-06-02T16:01:00+09:00",
+				Model:      "model-a",
+				Tokens: usage.TokenSummary{
+					Input:  10,
+					Output: 20,
+					Cache:  5,
+					Total:  35,
+				},
+			},
+			{
+				CallKey:    "call-b",
+				CallIndex:  2,
+				OccurredAt: "2026-06-02T16:02:00+09:00",
+				Tokens: usage.TokenSummary{
+					Input:  5,
+					Output: 15,
+					Total:  20,
+				},
+			},
+		},
+	}
+	if err := store.UpsertParsedSourceFile(context.Background(), "codex", "file-key", 123, "2026-06-02T16:30:00+09:00", parsed); err != nil {
+		t.Fatalf("UpsertParsedSourceFile() error = %v", err)
+	}
+
+	source, ok, err := store.SourceFile(context.Background(), "codex", "file-key")
+	if err != nil {
+		t.Fatalf("SourceFile() error = %v", err)
+	}
+	if !ok {
+		t.Fatal("SourceFile() ok = false, want true")
+	}
+	if !source.HasUsageCalls {
+		t.Fatalf("HasUsageCalls = false, want true")
+	}
+
+	db, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		t.Fatalf("sql.Open() error = %v", err)
+	}
+	defer db.Close()
+
+	var callCount int
+	if err := db.QueryRow(`select count(*) from usage_calls where provider = 'codex' and session_hash = 'session-hash'`).Scan(&callCount); err != nil {
+		t.Fatalf("select usage_calls count error = %v", err)
+	}
+	if callCount != 2 {
+		t.Fatalf("usage call count = %d, want 2", callCount)
+	}
+
+	parsed.Calls = parsed.Calls[:1]
+	parsed.Summary.LLMCallCount = 1
+	parsed.Summary.Tokens = usage.TokenSummary{
+		Input:  10,
+		Output: 20,
+		Cache:  5,
+		Total:  35,
+	}
+	if err := store.UpsertParsedSourceFile(context.Background(), "codex", "file-key", 124, "2026-06-02T16:31:00+09:00", parsed); err != nil {
+		t.Fatalf("UpsertParsedSourceFile(second) error = %v", err)
+	}
+	if err := db.QueryRow(`select count(*) from usage_calls where provider = 'codex' and source_file_key = 'file-key'`).Scan(&callCount); err != nil {
+		t.Fatalf("select usage_calls count after replace error = %v", err)
+	}
+	if callCount != 1 {
+		t.Fatalf("usage call count after replace = %d, want 1", callCount)
+	}
+}
+
+func TestListPendingUsageCalls(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "usage.sqlite")
+	store, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer store.Close()
+
+	parsed := usage.SessionUsage{
+		Summary: usage.SessionSummary{
+			SessionHash:   "session-hash",
+			StartedAt:     "2026-06-02T16:00:00+09:00",
+			EndedAt:       "2026-06-02T16:10:00+09:00",
+			UserTurnCount: 1,
+			LLMCallCount:  1,
+			Tokens: usage.TokenSummary{
+				Input: 10,
+				Total: 10,
+			},
+		},
+		Calls: []usage.UsageCall{
+			{
+				CallKey:    "call-a",
+				CallIndex:  1,
+				OccurredAt: "2026-06-02T16:01:00+09:00",
+				Tokens: usage.TokenSummary{
+					Input: 10,
+					Total: 10,
+				},
+			},
+		},
+	}
+	if err := store.UpsertParsedSourceFile(context.Background(), "codex", "file-key", 123, "2026-06-02T16:30:00+09:00", parsed); err != nil {
+		t.Fatalf("UpsertParsedSourceFile() error = %v", err)
+	}
+
+	calls, err := store.ListPendingUsageCalls(context.Background())
+	if err != nil {
+		t.Fatalf("ListPendingUsageCalls() error = %v", err)
+	}
+	if len(calls) != 1 {
+		t.Fatalf("pending call count = %d, want 1", len(calls))
+	}
+	if calls[0].Provider != "codex" || calls[0].SessionHash != "session-hash" || calls[0].CallKey != "call-a" {
+		t.Fatalf("pending call identity = %+v", calls[0])
+	}
+
+	pending, err := store.ListPendingSessions(context.Background())
+	if err != nil {
+		t.Fatalf("ListPendingSessions() error = %v", err)
+	}
+	if err := store.MarkSessionsSynced(context.Background(), pending); err != nil {
+		t.Fatalf("MarkSessionsSynced() error = %v", err)
+	}
+	calls, err = store.ListPendingUsageCalls(context.Background())
+	if err != nil {
+		t.Fatalf("ListPendingUsageCalls(after sync) error = %v", err)
+	}
+	if len(calls) != 0 {
+		t.Fatalf("pending calls after sync = %+v, want none", calls)
 	}
 }
 
