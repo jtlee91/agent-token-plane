@@ -21,11 +21,10 @@ type SessionSummary struct {
 }
 
 type TokenSummary struct {
-	Input     int `json:"input"`
-	Output    int `json:"output"`
-	Cache     int `json:"cache"`
-	Reasoning int `json:"reasoning"`
-	Total     int `json:"total"`
+	Input  int `json:"input"`
+	Output int `json:"output"`
+	Cache  int `json:"cache"`
+	Total  int `json:"total"`
 }
 
 type UsageCall struct {

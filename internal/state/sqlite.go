@@ -42,19 +42,18 @@ type UsageCallRow struct {
 }
 
 type DailyUsageRow struct {
-	UsageDate       string
-	Provider        string
-	Model           string
-	SessionCount    int
-	LLMCallCount    int
-	InputTokens     int
-	OutputTokens    int
-	CacheTokens     int
-	ReasoningTokens int
-	TotalTokens     int
-	FirstUsedAt     string
-	LastUsedAt      string
-	LocalUpdatedAt  string
+	UsageDate      string
+	Provider       string
+	Model          string
+	SessionCount   int
+	LLMCallCount   int
+	InputTokens    int
+	OutputTokens   int
+	CacheTokens    int
+	TotalTokens    int
+	FirstUsedAt    string
+	LastUsedAt     string
+	LocalUpdatedAt string
 }
 
 type LocalDevice struct {
@@ -169,7 +168,6 @@ func (store *Store) ListPendingUsageCalls(ctx context.Context) ([]UsageCallRow, 
 			uc.input_tokens,
 			uc.output_tokens,
 			uc.cache_tokens,
-			uc.reasoning_tokens,
 			uc.total_tokens,
 			uc.updated_at
 		from usage_calls uc
@@ -197,7 +195,6 @@ func (store *Store) ListPendingUsageCalls(ctx context.Context) ([]UsageCallRow, 
 			&call.Tokens.Input,
 			&call.Tokens.Output,
 			&call.Tokens.Cache,
-			&call.Tokens.Reasoning,
 			&call.Tokens.Total,
 			&call.UpdatedAt,
 		); err != nil {
@@ -232,7 +229,6 @@ func (store *Store) ListPendingDailyUsage(ctx context.Context) ([]DailyUsageRow,
 			coalesce(sum(uc.input_tokens), 0) as input_tokens,
 			coalesce(sum(uc.output_tokens), 0) as output_tokens,
 			coalesce(sum(uc.cache_tokens), 0) as cache_tokens,
-			coalesce(sum(uc.reasoning_tokens), 0) as reasoning_tokens,
 			coalesce(sum(uc.total_tokens), 0) as total_tokens,
 			min(uc.occurred_at) as first_used_at,
 			max(uc.occurred_at) as last_used_at,
@@ -261,7 +257,6 @@ func (store *Store) ListPendingDailyUsage(ctx context.Context) ([]DailyUsageRow,
 			&row.InputTokens,
 			&row.OutputTokens,
 			&row.CacheTokens,
-			&row.ReasoningTokens,
 			&row.TotalTokens,
 			&row.FirstUsedAt,
 			&row.LastUsedAt,
@@ -289,7 +284,6 @@ func (store *Store) listSessions(ctx context.Context, where string) ([]SessionRo
 			input_tokens,
 			output_tokens,
 			cache_tokens,
-			reasoning_tokens,
 			total_tokens,
 			updated_at
 		from sessions
@@ -315,7 +309,6 @@ func (store *Store) listSessions(ctx context.Context, where string) ([]SessionRo
 			&session.Tokens.Input,
 			&session.Tokens.Output,
 			&session.Tokens.Cache,
-			&session.Tokens.Reasoning,
 			&session.Tokens.Total,
 			&session.UpdatedAt,
 		); err != nil {
@@ -380,7 +373,6 @@ func (store *Store) SourceFile(ctx context.Context, provider string, fileKey str
 			s.input_tokens,
 			s.output_tokens,
 			s.cache_tokens,
-			s.reasoning_tokens,
 			s.total_tokens
 		from source_files sf
 		join sessions s on s.session_hash = sf.session_hash
@@ -401,7 +393,6 @@ func (store *Store) SourceFile(ctx context.Context, provider string, fileKey str
 		&session.Tokens.Input,
 		&session.Tokens.Output,
 		&session.Tokens.Cache,
-		&session.Tokens.Reasoning,
 		&session.Tokens.Total,
 	)
 	if err == sql.ErrNoRows {
@@ -439,12 +430,11 @@ func (store *Store) UpsertParsedSourceFile(ctx context.Context, provider string,
 			input_tokens,
 			output_tokens,
 			cache_tokens,
-			reasoning_tokens,
 			total_tokens,
 			updated_at,
 			need_sync,
 			synced_at
-		) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, null)
+		) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, null)
 		on conflict(session_hash) do update set
 			provider = excluded.provider,
 			started_at = excluded.started_at,
@@ -454,12 +444,11 @@ func (store *Store) UpsertParsedSourceFile(ctx context.Context, provider string,
 			input_tokens = excluded.input_tokens,
 			output_tokens = excluded.output_tokens,
 			cache_tokens = excluded.cache_tokens,
-			reasoning_tokens = excluded.reasoning_tokens,
 			total_tokens = excluded.total_tokens,
 			updated_at = excluded.updated_at,
 			need_sync = 1,
 			synced_at = null
-	`, parsed.Summary.SessionHash, provider, parsed.Summary.StartedAt, parsed.Summary.EndedAt, parsed.Summary.UserTurnCount, parsed.Summary.LLMCallCount, parsed.Summary.Tokens.Input, parsed.Summary.Tokens.Output, parsed.Summary.Tokens.Cache, parsed.Summary.Tokens.Reasoning, parsed.Summary.Tokens.Total, now); err != nil {
+	`, parsed.Summary.SessionHash, provider, parsed.Summary.StartedAt, parsed.Summary.EndedAt, parsed.Summary.UserTurnCount, parsed.Summary.LLMCallCount, parsed.Summary.Tokens.Input, parsed.Summary.Tokens.Output, parsed.Summary.Tokens.Cache, parsed.Summary.Tokens.Total, now); err != nil {
 		return err
 	}
 
@@ -481,11 +470,10 @@ func (store *Store) UpsertParsedSourceFile(ctx context.Context, provider string,
 				input_tokens,
 				output_tokens,
 				cache_tokens,
-				reasoning_tokens,
 				total_tokens,
 				source_file_key,
 				updated_at
-			) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			on conflict(provider, session_hash, call_key) do update set
 				call_index = excluded.call_index,
 				occurred_at = excluded.occurred_at,
@@ -493,11 +481,10 @@ func (store *Store) UpsertParsedSourceFile(ctx context.Context, provider string,
 				input_tokens = excluded.input_tokens,
 				output_tokens = excluded.output_tokens,
 				cache_tokens = excluded.cache_tokens,
-				reasoning_tokens = excluded.reasoning_tokens,
 				total_tokens = excluded.total_tokens,
 				source_file_key = excluded.source_file_key,
 				updated_at = excluded.updated_at
-		`, provider, parsed.Summary.SessionHash, call.CallKey, call.CallIndex, call.OccurredAt, nullableString(call.Model), call.Tokens.Input, call.Tokens.Output, call.Tokens.Cache, call.Tokens.Reasoning, call.Tokens.Total, fileKey, now); err != nil {
+		`, provider, parsed.Summary.SessionHash, call.CallKey, call.CallIndex, call.OccurredAt, nullableString(call.Model), call.Tokens.Input, call.Tokens.Output, call.Tokens.Cache, call.Tokens.Total, fileKey, now); err != nil {
 			return err
 		}
 	}
@@ -551,7 +538,6 @@ func (store *Store) migrate(ctx context.Context) error {
 			input_tokens integer not null,
 			output_tokens integer not null,
 			cache_tokens integer not null,
-			reasoning_tokens integer not null,
 			total_tokens integer not null,
 			updated_at text not null,
 			need_sync integer not null default 1,
@@ -578,7 +564,6 @@ func (store *Store) migrate(ctx context.Context) error {
 			input_tokens integer not null,
 			output_tokens integer not null,
 			cache_tokens integer not null,
-			reasoning_tokens integer not null,
 			total_tokens integer not null,
 			source_file_key text not null,
 			updated_at text not null,
@@ -605,10 +590,56 @@ func (store *Store) migrate(ctx context.Context) error {
 	if err := store.ensureSessionSyncColumns(ctx); err != nil {
 		return err
 	}
+	if err := store.dropRemovedReasoningColumns(ctx); err != nil {
+		return err
+	}
 	_, err = store.db.ExecContext(ctx, `
 		create index if not exists idx_sessions_need_sync on sessions(need_sync, provider, started_at);
 	`)
 	return err
+}
+
+func (store *Store) dropRemovedReasoningColumns(ctx context.Context) error {
+	for _, table := range []string{"sessions", "usage_calls"} {
+		hasColumn, err := store.tableHasColumn(ctx, table, "reasoning_tokens")
+		if err != nil {
+			return err
+		}
+		if !hasColumn {
+			continue
+		}
+		if _, err := store.db.ExecContext(ctx, `alter table `+table+` drop column reasoning_tokens`); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (store *Store) tableHasColumn(ctx context.Context, table string, column string) (bool, error) {
+	rows, err := store.db.QueryContext(ctx, `pragma table_info(`+table+`)`)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var cid int
+		var name string
+		var columnType string
+		var notNull int
+		var defaultValue sql.NullString
+		var pk int
+		if err := rows.Scan(&cid, &name, &columnType, &notNull, &defaultValue, &pk); err != nil {
+			return false, err
+		}
+		if name == column {
+			return true, nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, err
+	}
+	return false, nil
 }
 
 func (store *Store) ensureSessionSyncColumns(ctx context.Context) error {

@@ -64,34 +64,32 @@ type remoteDeviceItem struct {
 }
 
 type remoteDailyUsageItem struct {
-	UsageDate       string `json:"usage_date"`
-	Provider        string `json:"provider"`
-	Model           string `json:"model"`
-	SessionCount    int    `json:"session_count"`
-	LLMCallCount    int    `json:"llm_call_count"`
-	InputTokens     int    `json:"input_tokens"`
-	OutputTokens    int    `json:"output_tokens"`
-	CacheTokens     int    `json:"cache_tokens"`
-	ReasoningTokens int    `json:"reasoning_tokens"`
-	TotalTokens     int    `json:"total_tokens"`
-	FirstUsedAt     string `json:"first_used_at"`
-	LastUsedAt      string `json:"last_used_at"`
-	LocalUpdatedAt  string `json:"local_updated_at"`
+	UsageDate      string `json:"usage_date"`
+	Provider       string `json:"provider"`
+	Model          string `json:"model"`
+	SessionCount   int    `json:"session_count"`
+	LLMCallCount   int    `json:"llm_call_count"`
+	InputTokens    int    `json:"input_tokens"`
+	OutputTokens   int    `json:"output_tokens"`
+	CacheTokens    int    `json:"cache_tokens"`
+	TotalTokens    int    `json:"total_tokens"`
+	FirstUsedAt    string `json:"first_used_at"`
+	LastUsedAt     string `json:"last_used_at"`
+	LocalUpdatedAt string `json:"local_updated_at"`
 }
 
 type remoteSessionUsageItem struct {
-	SessionHash     string `json:"session_hash"`
-	Provider        string `json:"provider"`
-	StartedAt       string `json:"started_at"`
-	EndedAt         string `json:"ended_at"`
-	UserTurnCount   int    `json:"user_turn_count"`
-	LLMCallCount    int    `json:"llm_call_count"`
-	InputTokens     int    `json:"input_tokens"`
-	OutputTokens    int    `json:"output_tokens"`
-	CacheTokens     int    `json:"cache_tokens"`
-	ReasoningTokens int    `json:"reasoning_tokens"`
-	TotalTokens     int    `json:"total_tokens"`
-	LocalUpdatedAt  string `json:"local_updated_at"`
+	SessionHash    string `json:"session_hash"`
+	Provider       string `json:"provider"`
+	StartedAt      string `json:"started_at"`
+	EndedAt        string `json:"ended_at"`
+	UserTurnCount  int    `json:"user_turn_count"`
+	LLMCallCount   int    `json:"llm_call_count"`
+	InputTokens    int    `json:"input_tokens"`
+	OutputTokens   int    `json:"output_tokens"`
+	CacheTokens    int    `json:"cache_tokens"`
+	TotalTokens    int    `json:"total_tokens"`
+	LocalUpdatedAt string `json:"local_updated_at"`
 }
 
 func main() {
@@ -350,35 +348,33 @@ func buildSyncPayload(device state.LocalDevice, daily []state.DailyUsageRow, ses
 	}
 	for _, row := range daily {
 		payload.Daily = append(payload.Daily, remoteDailyUsageItem{
-			UsageDate:       row.UsageDate,
-			Provider:        row.Provider,
-			Model:           row.Model,
-			SessionCount:    row.SessionCount,
-			LLMCallCount:    row.LLMCallCount,
-			InputTokens:     row.InputTokens,
-			OutputTokens:    row.OutputTokens,
-			CacheTokens:     row.CacheTokens,
-			ReasoningTokens: row.ReasoningTokens,
-			TotalTokens:     row.TotalTokens,
-			FirstUsedAt:     row.FirstUsedAt,
-			LastUsedAt:      row.LastUsedAt,
-			LocalUpdatedAt:  row.LocalUpdatedAt,
+			UsageDate:      row.UsageDate,
+			Provider:       row.Provider,
+			Model:          row.Model,
+			SessionCount:   row.SessionCount,
+			LLMCallCount:   row.LLMCallCount,
+			InputTokens:    row.InputTokens,
+			OutputTokens:   row.OutputTokens,
+			CacheTokens:    row.CacheTokens,
+			TotalTokens:    row.TotalTokens,
+			FirstUsedAt:    row.FirstUsedAt,
+			LastUsedAt:     row.LastUsedAt,
+			LocalUpdatedAt: row.LocalUpdatedAt,
 		})
 	}
 	for _, row := range sessions {
 		payload.Sessions = append(payload.Sessions, remoteSessionUsageItem{
-			SessionHash:     row.SessionHash,
-			Provider:        row.Provider,
-			StartedAt:       row.StartedAt,
-			EndedAt:         row.EndedAt,
-			UserTurnCount:   row.UserTurnCount,
-			LLMCallCount:    row.LLMCallCount,
-			InputTokens:     row.Tokens.Input,
-			OutputTokens:    row.Tokens.Output,
-			CacheTokens:     row.Tokens.Cache,
-			ReasoningTokens: row.Tokens.Reasoning,
-			TotalTokens:     row.Tokens.Total,
-			LocalUpdatedAt:  row.UpdatedAt,
+			SessionHash:    row.SessionHash,
+			Provider:       row.Provider,
+			StartedAt:      row.StartedAt,
+			EndedAt:        row.EndedAt,
+			UserTurnCount:  row.UserTurnCount,
+			LLMCallCount:   row.LLMCallCount,
+			InputTokens:    row.Tokens.Input,
+			OutputTokens:   row.Tokens.Output,
+			CacheTokens:    row.Tokens.Cache,
+			TotalTokens:    row.Tokens.Total,
+			LocalUpdatedAt: row.UpdatedAt,
 		})
 	}
 	return payload

@@ -56,7 +56,6 @@ export type DashboardTokenBreakdown = {
   input: number;
   output: number;
   cache: number;
-  reasoning: number;
   total: number;
 };
 
@@ -80,7 +79,6 @@ export type DashboardSession = {
   inputTokens: number;
   outputTokens: number;
   cacheTokens: number;
-  reasoningTokens: number;
   totalTokens: number;
   localUpdatedAt: string;
   syncedAt: string | null;

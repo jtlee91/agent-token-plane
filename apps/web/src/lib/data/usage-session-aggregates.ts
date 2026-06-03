@@ -21,7 +21,6 @@ export type UsageSessionAggregateRow = {
   input_tokens: number;
   output_tokens: number;
   cache_tokens: number;
-  reasoning_tokens: number;
   total_tokens: number;
   local_updated_at: string;
   synced_at: string | null;
@@ -37,7 +36,6 @@ export type UsageDailyAggregateRow = {
   input_tokens: number;
   output_tokens: number;
   cache_tokens: number;
-  reasoning_tokens: number;
   total_tokens: number;
   first_used_at: string;
   last_used_at: string;
@@ -138,7 +136,6 @@ function emptyBreakdown(): DashboardTokenBreakdown {
     input: 0,
     output: 0,
     cache: 0,
-    reasoning: 0,
     total: 0,
   };
 }
@@ -148,7 +145,7 @@ function addToBreakdown(
   row: UsageSessionAggregateRow,
 ) {
   breakdown.input += row.input_tokens;
-  breakdown.output += row.output_tokens + row.reasoning_tokens;
+  breakdown.output += row.output_tokens;
   breakdown.cache += row.cache_tokens;
   breakdown.total += row.total_tokens;
 }
@@ -228,7 +225,7 @@ export function summarizeUsageDailyDashboard(
     activeSessions += row.session_count;
     totalLLMCalls += row.llm_call_count;
     tokenBreakdown.input += row.input_tokens;
-    tokenBreakdown.output += row.output_tokens + row.reasoning_tokens;
+    tokenBreakdown.output += row.output_tokens;
     tokenBreakdown.cache += row.cache_tokens;
     tokenBreakdown.total += row.total_tokens;
 
@@ -312,7 +309,6 @@ function toDashboardSession(row: UsageSessionAggregateRow): DashboardSession {
     inputTokens: row.input_tokens,
     outputTokens: row.output_tokens,
     cacheTokens: row.cache_tokens,
-    reasoningTokens: row.reasoning_tokens,
     totalTokens: row.total_tokens,
     localUpdatedAt: row.local_updated_at,
     syncedAt: row.synced_at,
