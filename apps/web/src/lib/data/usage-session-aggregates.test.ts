@@ -23,7 +23,6 @@ const rows: UsageSessionAggregateRow[] = [
     input_tokens: 300,
     output_tokens: 100,
     cache_tokens: 600,
-    total_tokens: 1000,
     local_updated_at: "2026-06-03T02:05:00.000Z",
     synced_at: "2026-06-03T02:06:00.000Z",
   },
@@ -37,7 +36,6 @@ const rows: UsageSessionAggregateRow[] = [
     input_tokens: 100,
     output_tokens: 200,
     cache_tokens: 400,
-    total_tokens: 700,
     local_updated_at: "2026-06-02T10:05:00.000Z",
     synced_at: "2026-06-02T10:06:00.000Z",
   },
@@ -51,7 +49,6 @@ const rows: UsageSessionAggregateRow[] = [
     input_tokens: 50,
     output_tokens: 50,
     cache_tokens: 400,
-    total_tokens: 500,
     local_updated_at: "2026-05-30T10:05:00.000Z",
     synced_at: "2026-05-30T10:06:00.000Z",
   },
@@ -71,7 +68,6 @@ function dailyRow(
     input_tokens: 0,
     output_tokens: 0,
     cache_tokens: 0,
-    total_tokens: 0,
     first_used_at: `${usageDate}T00:00:00.000Z`,
     last_used_at: `${usageDate}T00:10:00.000Z`,
     local_updated_at: `${usageDate}T00:11:00.000Z`,
@@ -185,19 +181,25 @@ test("summarizeUsageDailyRows aggregates usage_daily rows for the recent 7 days"
   const dailyRows: UsageDailyAggregateRow[] = [
     dailyRow("2026-06-02", {
       session_count: 3,
-      total_tokens: 700,
+      input_tokens: 100,
+      output_tokens: 200,
+      cache_tokens: 400,
     }),
     dailyRow("2026-06-02", {
       session_count: 2,
-      total_tokens: 300,
+      input_tokens: 100,
+      output_tokens: 100,
+      cache_tokens: 100,
     }),
     dailyRow("2026-06-03", {
       session_count: 1,
-      total_tokens: 1000,
+      input_tokens: 300,
+      output_tokens: 100,
+      cache_tokens: 600,
     }),
     dailyRow("2026-05-25", {
       session_count: 9,
-      total_tokens: 9999,
+      input_tokens: 9999,
     }),
   ];
 
@@ -229,7 +231,6 @@ test("summarizeUsageDailyDashboard builds dashboard totals from usage_daily only
         input_tokens: 300,
         output_tokens: 100,
         cache_tokens: 600,
-        total_tokens: 1020,
         last_used_at: "2026-06-03T02:00:00.000Z",
         synced_at: "2026-06-03T02:06:00.000Z",
       }),
@@ -241,7 +242,6 @@ test("summarizeUsageDailyDashboard builds dashboard totals from usage_daily only
         input_tokens: 100,
         output_tokens: 200,
         cache_tokens: 400,
-        total_tokens: 700,
         last_used_at: "2026-06-02T10:00:00.000Z",
         synced_at: "2026-06-02T10:06:00.000Z",
       }),
@@ -252,7 +252,6 @@ test("summarizeUsageDailyDashboard builds dashboard totals from usage_daily only
         input_tokens: 50,
         output_tokens: 50,
         cache_tokens: 400,
-        total_tokens: 500,
         last_used_at: "2026-05-30T10:00:00.000Z",
       }),
     ],
@@ -261,9 +260,9 @@ test("summarizeUsageDailyDashboard builds dashboard totals from usage_daily only
     },
   );
 
-  assert.equal(dashboard.todayTokens, 1020);
-  assert.equal(dashboard.weeklyTokens, 1720);
-  assert.equal(dashboard.totalTokens, 2220);
+  assert.equal(dashboard.todayTokens, 1000);
+  assert.equal(dashboard.weeklyTokens, 1700);
+  assert.equal(dashboard.totalTokens, 2200);
   assert.equal(dashboard.activeSessions, 6);
   assert.equal(dashboard.totalLLMCalls, 9);
   assert.equal(dashboard.weeklySessions, 5);
@@ -277,7 +276,7 @@ test("summarizeUsageDailyDashboard builds dashboard totals from usage_daily only
     input: 450,
     output: 350,
     cache: 1400,
-    total: 2220,
+    total: 2200,
   });
 
   assert.deepEqual(
@@ -291,7 +290,7 @@ test("summarizeUsageDailyDashboard builds dashboard totals from usage_daily only
     [
       {
         agentType: "codex",
-        totalTokens: 1520,
+        totalTokens: 1500,
         sessions: 3,
         llmCalls: 6,
         activeTurns: 0,

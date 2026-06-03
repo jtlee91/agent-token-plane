@@ -70,8 +70,7 @@ Output shape when not quiet:
       "tokens": {
         "input": 100,
         "output": 20,
-        "cache": 80,
-        "total": 200
+        "cache": 80
       }
     }
   ]
@@ -304,17 +303,10 @@ Relevant record shape:
   "payload": {
     "type": "token_count",
     "info": {
-      "total_token_usage": {
-        "input_tokens": 16100,
-        "cached_input_tokens": 3456,
-        "output_tokens": 220,
-        "total_tokens": 16320
-      },
       "last_token_usage": {
         "input_tokens": 16100,
         "cached_input_tokens": 3456,
-        "output_tokens": 220,
-        "total_tokens": 16320
+        "output_tokens": 220
       }
     }
   }
@@ -334,7 +326,7 @@ Parsing rules:
 - If no usable token count exists in the file, skip the file using
   provider-specific `ErrNoTokenCounts`.
 - Build one `UsageCall` per usable `token_count`.
-- Set the session token totals to the sum of normalized call tokens.
+- Set the session token details to the sum of normalized call tokens.
 - `started_at` is the timestamp of the first usable `token_count`.
 - `ended_at` is the timestamp of the last usable `token_count`.
 - Convert timestamps to KST.
@@ -345,11 +337,12 @@ Codex token mapping:
 input     = max(input_tokens - cached_input_tokens, 0)
 output    = output_tokens
 cache     = cached_input_tokens
-total     = total_tokens
 ```
 
 Rationale: Codex total usage includes cached input in `input_tokens`, but the
 normalized model keeps non-cached input and cache separate.
+Do not store Codex `total_token_usage` or `last_token_usage.total_tokens`.
+Any displayed total must be calculated as `input + output + cache`.
 
 ## Claude Code Parser
 
@@ -445,7 +438,6 @@ create table if not exists sessions (
   input_tokens integer not null,
   output_tokens integer not null,
   cache_tokens integer not null,
-  total_tokens integer not null,
   updated_at text not null,
   need_sync integer not null default 1,
   synced_at text
@@ -519,7 +511,6 @@ create table if not exists usage_calls (
   input_tokens integer not null,
   output_tokens integer not null,
   cache_tokens integer not null,
-  total_tokens integer not null,
   source_file_key text not null,
   updated_at text not null,
   primary key(provider, session_hash, call_key),
@@ -542,7 +533,9 @@ When reparsing a changed file:
 - Delete existing `usage_calls` rows for the same `provider` and
   `source_file_key`.
 - Insert the newly parsed call rows.
-- Upsert the owning `sessions` row with the call-summed totals.
+- Upsert the owning `sessions` row with the call-summed token details.
+- Do not store `total_tokens`; calculate displayed totals as
+  `input_tokens + output_tokens + cache_tokens`.
 
 ### `source_files`
 
@@ -631,7 +624,6 @@ create table public.usage_daily (
   input_tokens bigint not null,
   output_tokens bigint not null,
   cache_tokens bigint not null,
-  total_tokens bigint not null,
   first_used_at timestamptz not null,
   last_used_at timestamptz not null,
   local_updated_at timestamptz not null,
@@ -694,7 +686,6 @@ The CLI sends:
       "input_tokens": 100,
       "output_tokens": 20,
       "cache_tokens": 80,
-      "total_tokens": 200,
       "first_used_at": "2026-06-03T10:00:00+09:00",
       "last_used_at": "2026-06-03T10:05:00+09:00",
       "local_updated_at": "2026-06-03T10:06:00+09:00"

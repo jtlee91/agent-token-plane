@@ -83,6 +83,9 @@ func TestRunInspectPrintsCodexSessionSummaries(t *testing.T) {
 	if _, ok := tokens["reasoning"]; ok {
 		t.Fatalf("session tokens include removed reasoning field: %#v", tokens)
 	}
+	if _, ok := tokens["total"]; ok {
+		t.Fatalf("session tokens include removed total field: %#v", tokens)
+	}
 	if _, ok := raw["provider"]; ok {
 		t.Fatalf("top-level output includes provider key: %s", stdout.String())
 	}
@@ -252,7 +255,7 @@ func TestRunInspectPrintsClaudeSessionSummaries(t *testing.T) {
 	if session.UserTurnCount != 2 || session.LLMCallCount != 2 {
 		t.Fatalf("session counts = %+v, want two user turns and two llm calls", session)
 	}
-	if session.Tokens.Input != 1800 || session.Tokens.Output != 4665 || session.Tokens.Cache != 23555 || session.Tokens.Total != 30020 {
+	if session.Tokens.Input != 1800 || session.Tokens.Output != 4665 || session.Tokens.Cache != 23555 {
 		t.Fatalf("session tokens = %+v, want deduped Claude usage totals", session.Tokens)
 	}
 
@@ -330,8 +333,8 @@ func TestRunInspectReusesUnmodifiedSessionState(t *testing.T) {
 	if second.FilesParsed != 0 || second.FilesReused != 1 {
 		t.Fatalf("second run parsed/reused = %d/%d, want 0/1", second.FilesParsed, second.FilesReused)
 	}
-	if second.Sessions[0].Tokens.Total != first.Sessions[0].Tokens.Total {
-		t.Fatalf("cached total = %d, want %d", second.Sessions[0].Tokens.Total, first.Sessions[0].Tokens.Total)
+	if second.Sessions[0].Tokens != first.Sessions[0].Tokens {
+		t.Fatalf("cached tokens = %+v, want %+v", second.Sessions[0].Tokens, first.Sessions[0].Tokens)
 	}
 
 	newTime := time.Date(2026, 6, 2, 16, 0, 0, 0, time.FixedZone("KST", 9*60*60))
@@ -362,7 +365,6 @@ func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 			input_tokens integer not null,
 			output_tokens integer not null,
 			cache_tokens integer not null,
-			total_tokens integer not null,
 			updated_at text not null
 		);
 
@@ -385,7 +387,6 @@ func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 			input_tokens integer not null,
 			output_tokens integer not null,
 			cache_tokens integer not null,
-			total_tokens integer not null,
 			source_file_key text not null,
 			updated_at text not null,
 			primary key(provider, session_hash, call_key)
@@ -401,7 +402,6 @@ func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 			input_tokens,
 			output_tokens,
 			cache_tokens,
-			total_tokens,
 			updated_at
 		) values (
 			'session-hash',
@@ -413,7 +413,6 @@ func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 			100,
 			20,
 			70,
-			190,
 			'2026-06-02T13:06:00+09:00'
 		);
 
@@ -427,7 +426,6 @@ func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 			input_tokens,
 			output_tokens,
 			cache_tokens,
-			total_tokens,
 			source_file_key,
 			updated_at
 		) values
@@ -441,7 +439,6 @@ func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 			60,
 			10,
 			30,
-			100,
 			'file-key',
 			'2026-06-02T13:06:00+09:00'
 		),
@@ -455,7 +452,6 @@ func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 			40,
 			10,
 			40,
-			90,
 			'file-key',
 			'2026-06-02T13:06:00+09:00'
 		);
@@ -543,11 +539,11 @@ func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 	if firstSession["user_turn_count"].(float64) != 3 || firstSession["llm_call_count"].(float64) != 5 {
 		t.Fatalf("request session counts = %#v", firstSession)
 	}
-	if firstSession["total_tokens"].(float64) != 190 {
-		t.Fatalf("request session total = %#v", firstSession)
-	}
 	if _, ok := firstSession["reasoning_tokens"]; ok {
 		t.Fatalf("request session includes removed reasoning_tokens: %#v", firstSession)
+	}
+	if _, ok := firstSession["total_tokens"]; ok {
+		t.Fatalf("request session includes removed total_tokens: %#v", firstSession)
 	}
 	if _, ok := requestBody["calls"]; ok {
 		t.Fatalf("request should not include calls: %#v", requestBody["calls"])
@@ -568,6 +564,9 @@ func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 	}
 	if _, ok := firstDaily["reasoning_tokens"]; ok {
 		t.Fatalf("request daily includes removed reasoning_tokens: %#v", firstDaily)
+	}
+	if _, ok := firstDaily["total_tokens"]; ok {
+		t.Fatalf("request daily includes removed total_tokens: %#v", firstDaily)
 	}
 	if strings.Contains(stdout.String(), "secret") {
 		t.Fatalf("sync output leaked sensitive text: %s", stdout.String())

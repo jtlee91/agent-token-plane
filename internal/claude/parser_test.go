@@ -42,9 +42,6 @@ func TestParseSessionFileSummarizesDedupedUsage(t *testing.T) {
 	if summary.Tokens.Cache != 23555 {
 		t.Fatalf("Tokens.Cache = %d, want cache read plus cache creation sum", summary.Tokens.Cache)
 	}
-	if summary.Tokens.Total != 30020 {
-		t.Fatalf("Tokens.Total = %d, want input + output + cache read + cache creation", summary.Tokens.Total)
-	}
 }
 
 func TestParseSessionUsageReturnsDedupedCalls(t *testing.T) {
@@ -66,15 +63,12 @@ func TestParseSessionUsageReturnsDedupedCalls(t *testing.T) {
 	if first.CallKey == "" || len(first.CallKey) != 64 {
 		t.Fatalf("first CallKey = %q, want 64-char hash", first.CallKey)
 	}
-	if first.Tokens.Input != 1798 || first.Tokens.Output != 594 || first.Tokens.Cache != 10502 || first.Tokens.Total != 12894 {
+	if first.Tokens.Input != 1798 || first.Tokens.Output != 594 || first.Tokens.Cache != 10502 {
 		t.Fatalf("first call tokens = %+v, want deduped usage tokens", first.Tokens)
 	}
 	second := parsed.Calls[1]
-	if second.Tokens.Input != 2 || second.Tokens.Output != 4071 || second.Tokens.Cache != 13053 || second.Tokens.Total != 17126 {
+	if second.Tokens.Input != 2 || second.Tokens.Output != 4071 || second.Tokens.Cache != 13053 {
 		t.Fatalf("second call tokens = %+v, want second usage tokens", second.Tokens)
-	}
-	if parsed.Summary.Tokens.Total != first.Tokens.Total+second.Tokens.Total {
-		t.Fatalf("summary total = %d, want call sum", parsed.Summary.Tokens.Total)
 	}
 }
 

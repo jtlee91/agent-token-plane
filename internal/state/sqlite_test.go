@@ -29,7 +29,6 @@ func TestUpsertSourceFileStoresAuditTimestampsInKST(t *testing.T) {
 			Input:  10,
 			Output: 20,
 			Cache:  5,
-			Total:  30,
 		},
 	}); err != nil {
 		t.Fatalf("UpsertSourceFile() error = %v", err)
@@ -112,7 +111,6 @@ func TestUpsertSourceFileMarksSessionPendingSync(t *testing.T) {
 		Tokens: codex.TokenSummary{
 			Input:  10,
 			Output: 20,
-			Total:  30,
 		},
 	}
 	if err := store.UpsertSourceFile(context.Background(), "codex", "file-key", 123, "2026-06-02T16:30:00+09:00", session); err != nil {
@@ -169,7 +167,6 @@ func TestUpsertParsedSourceFileStoresUsageCalls(t *testing.T) {
 				Input:  15,
 				Output: 35,
 				Cache:  5,
-				Total:  55,
 			},
 		},
 		Calls: []usage.UsageCall{
@@ -182,7 +179,6 @@ func TestUpsertParsedSourceFileStoresUsageCalls(t *testing.T) {
 					Input:  10,
 					Output: 20,
 					Cache:  5,
-					Total:  35,
 				},
 			},
 			{
@@ -192,7 +188,6 @@ func TestUpsertParsedSourceFileStoresUsageCalls(t *testing.T) {
 				Tokens: usage.TokenSummary{
 					Input:  5,
 					Output: 15,
-					Total:  20,
 				},
 			},
 		},
@@ -232,7 +227,6 @@ func TestUpsertParsedSourceFileStoresUsageCalls(t *testing.T) {
 		Input:  10,
 		Output: 20,
 		Cache:  5,
-		Total:  35,
 	}
 	if err := store.UpsertParsedSourceFile(context.Background(), "codex", "file-key", 124, "2026-06-02T16:31:00+09:00", parsed); err != nil {
 		t.Fatalf("UpsertParsedSourceFile(second) error = %v", err)
@@ -262,7 +256,6 @@ func TestListPendingUsageCalls(t *testing.T) {
 			LLMCallCount:  1,
 			Tokens: usage.TokenSummary{
 				Input: 10,
-				Total: 10,
 			},
 		},
 		Calls: []usage.UsageCall{
@@ -272,7 +265,6 @@ func TestListPendingUsageCalls(t *testing.T) {
 				OccurredAt: "2026-06-02T16:01:00+09:00",
 				Tokens: usage.TokenSummary{
 					Input: 10,
-					Total: 10,
 				},
 			},
 		},
@@ -325,7 +317,6 @@ func TestListPendingDailyUsageAggregatesAffectedDays(t *testing.T) {
 			LLMCallCount:  2,
 			Tokens: usage.TokenSummary{
 				Input: 15,
-				Total: 15,
 			},
 		},
 		Calls: []usage.UsageCall{
@@ -335,7 +326,6 @@ func TestListPendingDailyUsageAggregatesAffectedDays(t *testing.T) {
 				OccurredAt: "2026-06-02T16:01:00+09:00",
 				Tokens: usage.TokenSummary{
 					Input: 10,
-					Total: 10,
 				},
 			},
 			{
@@ -347,7 +337,6 @@ func TestListPendingDailyUsageAggregatesAffectedDays(t *testing.T) {
 					Input:  5,
 					Output: 2,
 					Cache:  3,
-					Total:  10,
 				},
 			},
 		},
@@ -372,7 +361,6 @@ func TestListPendingDailyUsageAggregatesAffectedDays(t *testing.T) {
 			LLMCallCount:  1,
 			Tokens: usage.TokenSummary{
 				Input: 7,
-				Total: 7,
 			},
 		},
 		Calls: []usage.UsageCall{
@@ -382,7 +370,6 @@ func TestListPendingDailyUsageAggregatesAffectedDays(t *testing.T) {
 				OccurredAt: "2026-06-02T17:01:00+09:00",
 				Tokens: usage.TokenSummary{
 					Input: 7,
-					Total: 7,
 				},
 			},
 		},
@@ -400,11 +387,30 @@ func TestListPendingDailyUsageAggregatesAffectedDays(t *testing.T) {
 	if daily[0].UsageDate != "2026-06-02" || daily[0].Provider != "codex" || daily[0].Model != "" {
 		t.Fatalf("first daily identity = %+v", daily[0])
 	}
-	if daily[0].SessionCount != 2 || daily[0].LLMCallCount != 2 || daily[0].InputTokens != 17 || daily[0].TotalTokens != 17 {
+	if daily[0].SessionCount != 2 || daily[0].LLMCallCount != 2 || daily[0].InputTokens != 17 || daily[0].OutputTokens != 0 || daily[0].CacheTokens != 0 {
 		t.Fatalf("first daily aggregate = %+v, want both blank-model sessions on affected day", daily[0])
 	}
-	if daily[1].Model != "model-a" || daily[1].SessionCount != 1 || daily[1].LLMCallCount != 1 || daily[1].TotalTokens != 10 {
+	if daily[1].Model != "model-a" || daily[1].SessionCount != 1 || daily[1].LLMCallCount != 1 || daily[1].InputTokens != 5 || daily[1].OutputTokens != 2 || daily[1].CacheTokens != 3 {
 		t.Fatalf("second daily aggregate = %+v, want model-a row", daily[1])
+	}
+}
+
+func TestSQLiteSchemaDoesNotStoreTotalTokens(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "usage.sqlite")
+	store, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer store.Close()
+
+	for _, table := range []string{"sessions", "usage_calls"} {
+		hasColumn, err := store.tableHasColumn(context.Background(), table, "total_tokens")
+		if err != nil {
+			t.Fatalf("tableHasColumn(%s, total_tokens) error = %v", table, err)
+		}
+		if hasColumn {
+			t.Fatalf("%s stores removed total_tokens column", table)
+		}
 	}
 }
 
@@ -426,7 +432,6 @@ func TestMarkAllSessionsPendingSync(t *testing.T) {
 			Tokens: codex.TokenSummary{
 				Input:  10,
 				Output: 20,
-				Total:  30,
 			},
 		}); err != nil {
 			t.Fatalf("UpsertSourceFile(%s) error = %v", hash, err)
@@ -474,7 +479,6 @@ func TestOpenNormalizesExistingTimestampsToKST(t *testing.T) {
 		LLMCallCount:  2,
 		Tokens: codex.TokenSummary{
 			Input: 10,
-			Total: 10,
 		},
 	}); err != nil {
 		t.Fatalf("UpsertSourceFile() error = %v", err)

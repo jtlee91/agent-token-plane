@@ -15,7 +15,6 @@ const validPayload = {
   output_tokens: 45,
   cache_creation_tokens: 0,
   cache_read_tokens: 300,
-  total_tokens: 1245,
   user_message_count: 0,
   assistant_message_count: 0,
   collector_version: "test-version",
