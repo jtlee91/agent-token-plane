@@ -23,7 +23,6 @@ const rows: UsageSessionAggregateRow[] = [
     input_tokens: 300,
     output_tokens: 100,
     cache_tokens: 600,
-    reasoning_tokens: 20,
     total_tokens: 1000,
     local_updated_at: "2026-06-03T02:05:00.000Z",
     synced_at: "2026-06-03T02:06:00.000Z",
@@ -38,7 +37,6 @@ const rows: UsageSessionAggregateRow[] = [
     input_tokens: 100,
     output_tokens: 200,
     cache_tokens: 400,
-    reasoning_tokens: 0,
     total_tokens: 700,
     local_updated_at: "2026-06-02T10:05:00.000Z",
     synced_at: "2026-06-02T10:06:00.000Z",
@@ -53,7 +51,6 @@ const rows: UsageSessionAggregateRow[] = [
     input_tokens: 50,
     output_tokens: 50,
     cache_tokens: 400,
-    reasoning_tokens: 0,
     total_tokens: 500,
     local_updated_at: "2026-05-30T10:05:00.000Z",
     synced_at: "2026-05-30T10:06:00.000Z",
@@ -74,7 +71,6 @@ function dailyRow(
     input_tokens: 0,
     output_tokens: 0,
     cache_tokens: 0,
-    reasoning_tokens: 0,
     total_tokens: 0,
     first_used_at: `${usageDate}T00:00:00.000Z`,
     last_used_at: `${usageDate}T00:10:00.000Z`,
@@ -101,9 +97,8 @@ test("summarizeUsageSessions aggregates usage_sessions with KST day and week bou
 
   assert.deepEqual(dashboard.tokenBreakdown, {
     input: 450,
-    output: 370,
+    output: 350,
     cache: 1400,
-    reasoning: 0,
     total: 2200,
   });
 
@@ -234,7 +229,6 @@ test("summarizeUsageDailyDashboard builds dashboard totals from usage_daily only
         input_tokens: 300,
         output_tokens: 100,
         cache_tokens: 600,
-        reasoning_tokens: 20,
         total_tokens: 1020,
         last_used_at: "2026-06-03T02:00:00.000Z",
         synced_at: "2026-06-03T02:06:00.000Z",
@@ -281,9 +275,8 @@ test("summarizeUsageDailyDashboard builds dashboard totals from usage_daily only
 
   assert.deepEqual(dashboard.tokenBreakdown, {
     input: 450,
-    output: 370,
+    output: 350,
     cache: 1400,
-    reasoning: 0,
     total: 2220,
   });
 

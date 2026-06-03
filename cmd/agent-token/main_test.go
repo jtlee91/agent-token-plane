@@ -76,6 +76,13 @@ func TestRunInspectPrintsCodexSessionSummaries(t *testing.T) {
 	} else {
 		t.Fatalf("session object does not include provider key: %s", stdout.String())
 	}
+	tokens, ok := firstSession["tokens"].(map[string]any)
+	if !ok {
+		t.Fatalf("session tokens = %#v, want object", firstSession["tokens"])
+	}
+	if _, ok := tokens["reasoning"]; ok {
+		t.Fatalf("session tokens include removed reasoning field: %#v", tokens)
+	}
 	if _, ok := raw["provider"]; ok {
 		t.Fatalf("top-level output includes provider key: %s", stdout.String())
 	}
@@ -355,7 +362,6 @@ func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 			input_tokens integer not null,
 			output_tokens integer not null,
 			cache_tokens integer not null,
-			reasoning_tokens integer not null,
 			total_tokens integer not null,
 			updated_at text not null
 		);
@@ -379,7 +385,6 @@ func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 			input_tokens integer not null,
 			output_tokens integer not null,
 			cache_tokens integer not null,
-			reasoning_tokens integer not null,
 			total_tokens integer not null,
 			source_file_key text not null,
 			updated_at text not null,
@@ -396,7 +401,6 @@ func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 			input_tokens,
 			output_tokens,
 			cache_tokens,
-			reasoning_tokens,
 			total_tokens,
 			updated_at
 		) values (
@@ -409,7 +413,6 @@ func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 			100,
 			20,
 			70,
-			4,
 			190,
 			'2026-06-02T13:06:00+09:00'
 		);
@@ -424,7 +427,6 @@ func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 			input_tokens,
 			output_tokens,
 			cache_tokens,
-			reasoning_tokens,
 			total_tokens,
 			source_file_key,
 			updated_at
@@ -439,7 +441,6 @@ func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 			60,
 			10,
 			30,
-			2,
 			100,
 			'file-key',
 			'2026-06-02T13:06:00+09:00'
@@ -454,7 +455,6 @@ func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 			40,
 			10,
 			40,
-			2,
 			90,
 			'file-key',
 			'2026-06-02T13:06:00+09:00'
@@ -546,6 +546,9 @@ func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 	if firstSession["total_tokens"].(float64) != 190 {
 		t.Fatalf("request session total = %#v", firstSession)
 	}
+	if _, ok := firstSession["reasoning_tokens"]; ok {
+		t.Fatalf("request session includes removed reasoning_tokens: %#v", firstSession)
+	}
 	if _, ok := requestBody["calls"]; ok {
 		t.Fatalf("request should not include calls: %#v", requestBody["calls"])
 	}
@@ -562,6 +565,9 @@ func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 	}
 	if _, ok := firstDaily["local_updated_at"]; !ok {
 		t.Fatalf("request daily missing local_updated_at: %#v", firstDaily)
+	}
+	if _, ok := firstDaily["reasoning_tokens"]; ok {
+		t.Fatalf("request daily includes removed reasoning_tokens: %#v", firstDaily)
 	}
 	if strings.Contains(stdout.String(), "secret") {
 		t.Fatalf("sync output leaked sensitive text: %s", stdout.String())

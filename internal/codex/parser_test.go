@@ -42,9 +42,6 @@ func TestParseSessionFileSummarizesTokenCounts(t *testing.T) {
 	if summary.Tokens.Cache != 80 {
 		t.Fatalf("Tokens.Cache = %d, want final cached input", summary.Tokens.Cache)
 	}
-	if summary.Tokens.Reasoning != 7 {
-		t.Fatalf("Tokens.Reasoning = %d, want final reasoning output", summary.Tokens.Reasoning)
-	}
 	if summary.Tokens.Total != 285 {
 		t.Fatalf("Tokens.Total = %d, want final total tokens", summary.Tokens.Total)
 	}
@@ -66,11 +63,11 @@ func TestParseSessionUsageReturnsTokenCalls(t *testing.T) {
 	if first.CallKey == "" || len(first.CallKey) != 64 {
 		t.Fatalf("first CallKey = %q, want 64-char hash", first.CallKey)
 	}
-	if first.Tokens.Input != 60 || first.Tokens.Output != 20 || first.Tokens.Cache != 40 || first.Tokens.Reasoning != 5 || first.Tokens.Total != 120 {
+	if first.Tokens.Input != 60 || first.Tokens.Output != 20 || first.Tokens.Cache != 40 || first.Tokens.Total != 120 {
 		t.Fatalf("first call tokens = %+v, want last_token_usage normalized tokens", first.Tokens)
 	}
 	second := parsed.Calls[1]
-	if second.Tokens.Input != 110 || second.Tokens.Output != 15 || second.Tokens.Cache != 40 || second.Tokens.Reasoning != 2 || second.Tokens.Total != 165 {
+	if second.Tokens.Input != 110 || second.Tokens.Output != 15 || second.Tokens.Cache != 40 || second.Tokens.Total != 165 {
 		t.Fatalf("second call tokens = %+v, want second last_token_usage normalized tokens", second.Tokens)
 	}
 	if parsed.Summary.Tokens.Input != first.Tokens.Input+second.Tokens.Input {

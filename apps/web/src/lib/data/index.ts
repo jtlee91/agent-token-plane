@@ -33,7 +33,6 @@ const emptyDashboardData: DashboardData = {
     input: 0,
     output: 0,
     cache: 0,
-    reasoning: 0,
     total: 0,
   },
   dailyUsage: [],

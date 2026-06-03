@@ -44,11 +44,10 @@ type sessionPayload struct {
 }
 
 type tokenUsage struct {
-	InputTokens           int `json:"input_tokens"`
-	CachedInputTokens     int `json:"cached_input_tokens"`
-	OutputTokens          int `json:"output_tokens"`
-	ReasoningOutputTokens int `json:"reasoning_output_tokens"`
-	TotalTokens           int `json:"total_tokens"`
+	InputTokens       int `json:"input_tokens"`
+	CachedInputTokens int `json:"cached_input_tokens"`
+	OutputTokens      int `json:"output_tokens"`
+	TotalTokens       int `json:"total_tokens"`
 }
 
 func ParseSessionFile(path string) (SessionSummary, error) {
@@ -116,7 +115,6 @@ func ParseSessionUsage(path string) (SessionUsage, error) {
 				summary.Tokens.Input += tokens.Input
 				summary.Tokens.Output += tokens.Output
 				summary.Tokens.Cache += tokens.Cache
-				summary.Tokens.Reasoning += tokens.Reasoning
 				summary.Tokens.Total += tokens.Total
 				calls = append(calls, usage.UsageCall{
 					CallIndex:  summary.LLMCallCount,
@@ -183,11 +181,10 @@ func readEventPayload(raw json.RawMessage) (string, tokenUsage, bool, error) {
 
 func tokenSummary(usage tokenUsage) TokenSummary {
 	return TokenSummary{
-		Input:     uncachedInputTokens(usage),
-		Output:    usage.OutputTokens,
-		Cache:     usage.CachedInputTokens,
-		Reasoning: usage.ReasoningOutputTokens,
-		Total:     usage.TotalTokens,
+		Input:  uncachedInputTokens(usage),
+		Output: usage.OutputTokens,
+		Cache:  usage.CachedInputTokens,
+		Total:  usage.TotalTokens,
 	}
 }
 

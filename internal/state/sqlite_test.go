@@ -26,11 +26,10 @@ func TestUpsertSourceFileStoresAuditTimestampsInKST(t *testing.T) {
 		UserTurnCount: 1,
 		LLMCallCount:  2,
 		Tokens: codex.TokenSummary{
-			Input:     10,
-			Output:    20,
-			Cache:     5,
-			Reasoning: 7,
-			Total:     30,
+			Input:  10,
+			Output: 20,
+			Cache:  5,
+			Total:  30,
 		},
 	}); err != nil {
 		t.Fatalf("UpsertSourceFile() error = %v", err)

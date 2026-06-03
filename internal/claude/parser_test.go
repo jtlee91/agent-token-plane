@@ -42,9 +42,6 @@ func TestParseSessionFileSummarizesDedupedUsage(t *testing.T) {
 	if summary.Tokens.Cache != 23555 {
 		t.Fatalf("Tokens.Cache = %d, want cache read plus cache creation sum", summary.Tokens.Cache)
 	}
-	if summary.Tokens.Reasoning != 0 {
-		t.Fatalf("Tokens.Reasoning = %d, want 0 because Claude JSONL has no reasoning field", summary.Tokens.Reasoning)
-	}
 	if summary.Tokens.Total != 30020 {
 		t.Fatalf("Tokens.Total = %d, want input + output + cache read + cache creation", summary.Tokens.Total)
 	}

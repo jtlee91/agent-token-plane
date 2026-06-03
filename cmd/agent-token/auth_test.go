@@ -419,7 +419,6 @@ func seedSyncSession(t *testing.T, stateDir string) {
 			input_tokens integer not null,
 			output_tokens integer not null,
 			cache_tokens integer not null,
-			reasoning_tokens integer not null,
 			total_tokens integer not null,
 			updated_at text not null
 		);
@@ -443,7 +442,6 @@ func seedSyncSession(t *testing.T, stateDir string) {
 			100,
 			20,
 			70,
-			4,
 			190,
 			'2026-06-02T13:06:00+09:00'
 		);

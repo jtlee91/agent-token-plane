@@ -71,8 +71,7 @@ Output shape when not quiet:
         "input": 100,
         "output": 20,
         "cache": 80,
-        "reasoning": 5,
-        "total": 205
+        "total": 200
       }
     }
   ]
@@ -221,11 +220,10 @@ type SessionSummary struct {
 }
 
 type TokenSummary struct {
-    Input     int
-    Output    int
-    Cache     int
-    Reasoning int
-    Total     int
+    Input  int
+    Output int
+    Cache  int
+    Total  int
 }
 
 type UsageCall struct {
@@ -244,7 +242,6 @@ Definitions:
 - `input`: non-cached input tokens when the provider exposes cache separately.
 - `output`: generated output tokens.
 - `cache`: cached or cache-related input tokens.
-- `reasoning`: reasoning output tokens, when exposed by provider.
 - `total`: provider total when available; otherwise computed total.
 - `call_key`: hashed stable call identifier. Do not store raw request/message
   IDs remotely unless explicitly allowed later.
@@ -311,14 +308,12 @@ Relevant record shape:
         "input_tokens": 16100,
         "cached_input_tokens": 3456,
         "output_tokens": 220,
-        "reasoning_output_tokens": 133,
         "total_tokens": 16320
       },
       "last_token_usage": {
         "input_tokens": 16100,
         "cached_input_tokens": 3456,
         "output_tokens": 220,
-        "reasoning_output_tokens": 133,
         "total_tokens": 16320
       }
     }
@@ -332,17 +327,10 @@ Parsing rules:
   filename without `.jsonl`.
 - Count `event_msg.payload.type == "user_message"` as `user_turn_count`.
 - Count `event_msg.payload.type == "token_count"` with usable
-  `total_token_usage` as one `llm_call_count`.
-- Prefer `payload.info.total_token_usage`.
-- Fallback to `payload.total_token_usage` for older/variant records.
+  `last_token_usage` as one `llm_call_count`.
 - For call-level tokens, prefer `payload.info.last_token_usage`.
 - Fallback to `payload.last_token_usage` for older/variant records.
-- If `last_token_usage` is absent, calculate the call-level usage as the
-  non-negative delta between current and previous cumulative
-  `total_token_usage`.
-- If this is the first usable token count and `last_token_usage` is absent, use
-  the current cumulative `total_token_usage` as that first call.
-- Skip `token_count` records that do not include total token usage.
+- Skip `token_count` records that do not include `last_token_usage`.
 - If no usable token count exists in the file, skip the file using
   provider-specific `ErrNoTokenCounts`.
 - Build one `UsageCall` per usable `token_count`.
@@ -357,7 +345,6 @@ Codex token mapping:
 input     = max(input_tokens - cached_input_tokens, 0)
 output    = output_tokens
 cache     = cached_input_tokens
-reasoning = reasoning_output_tokens
 total     = total_tokens
 ```
 
@@ -434,7 +421,6 @@ Claude token mapping after dedupe:
 input     = sum(input_tokens)
 output    = sum(output_tokens)
 cache     = sum(cache_creation_input_tokens + cache_read_input_tokens)
-reasoning = 0
 total     = input + output + cache
 ```
 
@@ -459,7 +445,6 @@ create table if not exists sessions (
   input_tokens integer not null,
   output_tokens integer not null,
   cache_tokens integer not null,
-  reasoning_tokens integer not null,
   total_tokens integer not null,
   updated_at text not null,
   need_sync integer not null default 1,
@@ -534,7 +519,6 @@ create table if not exists usage_calls (
   input_tokens integer not null,
   output_tokens integer not null,
   cache_tokens integer not null,
-  reasoning_tokens integer not null,
   total_tokens integer not null,
   source_file_key text not null,
   updated_at text not null,
@@ -647,7 +631,6 @@ create table public.usage_daily (
   input_tokens bigint not null,
   output_tokens bigint not null,
   cache_tokens bigint not null,
-  reasoning_tokens bigint not null,
   total_tokens bigint not null,
   first_used_at timestamptz not null,
   last_used_at timestamptz not null,
@@ -711,8 +694,7 @@ The CLI sends:
       "input_tokens": 100,
       "output_tokens": 20,
       "cache_tokens": 80,
-      "reasoning_tokens": 5,
-      "total_tokens": 205,
+      "total_tokens": 200,
       "first_used_at": "2026-06-03T10:00:00+09:00",
       "last_used_at": "2026-06-03T10:05:00+09:00",
       "local_updated_at": "2026-06-03T10:06:00+09:00"

@@ -48,7 +48,7 @@ const safeFields = [
   "turn_started_at / turn_completed_at",
   "timezone",
   "input_tokens / output_tokens",
-  "cache / reasoning / total_tokens",
+  "cache / total_tokens",
   "message_count",
   "collector_version",
   "event_fingerprint",

@@ -284,7 +284,6 @@ export async function persistUsageEvent(
     output_tokens: event.output_tokens,
     cache_creation_tokens: event.cache_creation_tokens,
     cache_read_tokens: event.cache_read_tokens,
-    reasoning_tokens: event.reasoning_tokens,
     total_tokens: event.total_tokens,
     user_message_count: event.user_message_count,
     assistant_message_count: event.assistant_message_count,
