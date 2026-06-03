@@ -338,7 +338,7 @@ func TestRunInspectReusesUnmodifiedSessionState(t *testing.T) {
 	}
 }
 
-func TestRunSyncPostsDailyAggregates(t *testing.T) {
+func TestRunSyncPostsDailyAggregatesAndSessions(t *testing.T) {
 	stateDir := t.TempDir()
 	db, err := sql.Open("sqlite", filepath.Join(stateDir, "usage.sqlite"))
 	if err != nil {
@@ -519,8 +519,8 @@ func TestRunSyncPostsDailyAggregates(t *testing.T) {
 	if result["daily_uploaded"].(float64) != 2 {
 		t.Fatalf("sync result = %#v, want two uploaded daily rows", result)
 	}
-	if _, ok := result["sessions_uploaded"]; ok {
-		t.Fatalf("sync result should not include sessions_uploaded: %#v", result)
+	if result["sessions_uploaded"].(float64) != 1 {
+		t.Fatalf("sync result = %#v, want one uploaded session", result)
 	}
 	if _, ok := requestBody["user_id"]; ok {
 		t.Fatalf("request should not include user_id: %#v", requestBody)
@@ -532,8 +532,19 @@ func TestRunSyncPostsDailyAggregates(t *testing.T) {
 	if device["device_id"] == "" || device["device_label"] == "" || device["platform"] == "" {
 		t.Fatalf("request device = %#v, want populated device fields", device)
 	}
-	if _, ok := requestBody["sessions"]; ok {
-		t.Fatalf("request should not include sessions: %#v", requestBody["sessions"])
+	sessions, ok := requestBody["sessions"].([]any)
+	if !ok || len(sessions) != 1 {
+		t.Fatalf("request sessions = %#v, want one row", requestBody["sessions"])
+	}
+	firstSession := sessions[0].(map[string]any)
+	if firstSession["session_hash"] != "session-hash" || firstSession["provider"] != "codex" {
+		t.Fatalf("request session identity = %#v", firstSession)
+	}
+	if firstSession["user_turn_count"].(float64) != 3 || firstSession["llm_call_count"].(float64) != 5 {
+		t.Fatalf("request session counts = %#v", firstSession)
+	}
+	if firstSession["total_tokens"].(float64) != 190 {
+		t.Fatalf("request session total = %#v", firstSession)
 	}
 	if _, ok := requestBody["calls"]; ok {
 		t.Fatalf("request should not include calls: %#v", requestBody["calls"])
@@ -575,8 +586,8 @@ func TestRunSyncPostsDailyAggregates(t *testing.T) {
 	if result["daily_uploaded"].(float64) != 0 {
 		t.Fatalf("second sync result = %#v, want zero uploaded daily rows", result)
 	}
-	if _, ok := result["sessions_uploaded"]; ok {
-		t.Fatalf("second sync result should not include sessions_uploaded: %#v", result)
+	if result["sessions_uploaded"].(float64) != 0 {
+		t.Fatalf("second sync result = %#v, want zero uploaded sessions", result)
 	}
 	if requestCount != 1 {
 		t.Fatalf("sync request count = %d, want only first sync request", requestCount)

@@ -47,12 +47,14 @@ type fileMetadata struct {
 }
 
 type syncResult struct {
-	DailyUploaded int `json:"daily_uploaded"`
+	DailyUploaded    int `json:"daily_uploaded"`
+	SessionsUploaded int `json:"sessions_uploaded"`
 }
 
 type syncPayload struct {
-	Device remoteDeviceItem       `json:"device"`
-	Daily  []remoteDailyUsageItem `json:"daily"`
+	Device   remoteDeviceItem         `json:"device"`
+	Daily    []remoteDailyUsageItem   `json:"daily"`
+	Sessions []remoteSessionUsageItem `json:"sessions"`
 }
 
 type remoteDeviceItem struct {
@@ -74,6 +76,21 @@ type remoteDailyUsageItem struct {
 	TotalTokens     int    `json:"total_tokens"`
 	FirstUsedAt     string `json:"first_used_at"`
 	LastUsedAt      string `json:"last_used_at"`
+	LocalUpdatedAt  string `json:"local_updated_at"`
+}
+
+type remoteSessionUsageItem struct {
+	SessionHash     string `json:"session_hash"`
+	Provider        string `json:"provider"`
+	StartedAt       string `json:"started_at"`
+	EndedAt         string `json:"ended_at"`
+	UserTurnCount   int    `json:"user_turn_count"`
+	LLMCallCount    int    `json:"llm_call_count"`
+	InputTokens     int    `json:"input_tokens"`
+	OutputTokens    int    `json:"output_tokens"`
+	CacheTokens     int    `json:"cache_tokens"`
+	ReasoningTokens int    `json:"reasoning_tokens"`
+	TotalTokens     int    `json:"total_tokens"`
 	LocalUpdatedAt  string `json:"local_updated_at"`
 }
 
@@ -267,7 +284,7 @@ func runSync(args []string, stdout io.Writer) error {
 		return err
 	}
 	if len(sessions) == 0 {
-		return writeSyncResult(stdout, *quiet, 0)
+		return writeSyncResult(stdout, *quiet, 0, 0)
 	}
 	daily, err := store.ListPendingDailyUsage(ctx)
 	if err != nil {
@@ -290,7 +307,7 @@ func runSync(args []string, stdout io.Writer) error {
 		resolvedEndpoint = defaultSyncEndpoint
 	}
 
-	payload := buildSyncPayload(device, daily)
+	payload := buildSyncPayload(device, daily, sessions)
 	if err := postSyncPayload(ctx, resolvedEndpoint, resolvedToken, payload); err != nil {
 		return err
 	}
@@ -298,17 +315,18 @@ func runSync(args []string, stdout io.Writer) error {
 		return err
 	}
 
-	return writeSyncResult(stdout, *quiet, len(payload.Daily))
+	return writeSyncResult(stdout, *quiet, len(payload.Daily), len(payload.Sessions))
 }
 
-func writeSyncResult(stdout io.Writer, quiet bool, dailyUploaded int) error {
+func writeSyncResult(stdout io.Writer, quiet bool, dailyUploaded int, sessionsUploaded int) error {
 	if quiet {
 		return nil
 	}
 	encoder := json.NewEncoder(stdout)
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(syncResult{
-		DailyUploaded: dailyUploaded,
+		DailyUploaded:    dailyUploaded,
+		SessionsUploaded: sessionsUploaded,
 	})
 }
 
@@ -320,14 +338,15 @@ func getenvDefault(name string, fallback string) string {
 	return fallback
 }
 
-func buildSyncPayload(device state.LocalDevice, daily []state.DailyUsageRow) syncPayload {
+func buildSyncPayload(device state.LocalDevice, daily []state.DailyUsageRow, sessions []state.SessionRow) syncPayload {
 	payload := syncPayload{
 		Device: remoteDeviceItem{
 			DeviceID:    device.DeviceID,
 			DeviceLabel: device.DeviceLabel,
 			Platform:    device.Platform,
 		},
-		Daily: make([]remoteDailyUsageItem, 0, len(daily)),
+		Daily:    make([]remoteDailyUsageItem, 0, len(daily)),
+		Sessions: make([]remoteSessionUsageItem, 0, len(sessions)),
 	}
 	for _, row := range daily {
 		payload.Daily = append(payload.Daily, remoteDailyUsageItem{
@@ -344,6 +363,22 @@ func buildSyncPayload(device state.LocalDevice, daily []state.DailyUsageRow) syn
 			FirstUsedAt:     row.FirstUsedAt,
 			LastUsedAt:      row.LastUsedAt,
 			LocalUpdatedAt:  row.LocalUpdatedAt,
+		})
+	}
+	for _, row := range sessions {
+		payload.Sessions = append(payload.Sessions, remoteSessionUsageItem{
+			SessionHash:     row.SessionHash,
+			Provider:        row.Provider,
+			StartedAt:       row.StartedAt,
+			EndedAt:         row.EndedAt,
+			UserTurnCount:   row.UserTurnCount,
+			LLMCallCount:    row.LLMCallCount,
+			InputTokens:     row.Tokens.Input,
+			OutputTokens:    row.Tokens.Output,
+			CacheTokens:     row.Tokens.Cache,
+			ReasoningTokens: row.Tokens.Reasoning,
+			TotalTokens:     row.Tokens.Total,
+			LocalUpdatedAt:  row.UpdatedAt,
 		})
 	}
 	return payload
