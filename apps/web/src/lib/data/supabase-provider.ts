@@ -210,6 +210,10 @@ export const supabaseDataProvider: TokenPlaneDataProvider = {
         weeklyTurns: 0,
         weeklyLLMCalls: 0,
         weeklySessions: 0,
+        monthlyTokens: 0,
+        monthlyTurns: 0,
+        monthlyLLMCalls: 0,
+        monthlySessions: 0,
         connectedDevices: 0,
         weeklyRank: null,
         weeklyRankScore: null,
@@ -281,6 +285,7 @@ export const supabaseDataProvider: TokenPlaneDataProvider = {
       ((turnTotalsResult.data ?? []) as {
         total_turns: number;
         weekly_turns: number;
+        monthly_turns: number;
       }[])[0] ?? null;
     const viewerRankingRow = rankingResult.find((row) => row.is_viewer) ?? null;
     const dailyRows = (dailyResult.data ?? []) as unknown as UsageDailyAggregateRow[];
@@ -325,6 +330,7 @@ export const supabaseDataProvider: TokenPlaneDataProvider = {
       ...dashboard,
       activeTurns: turnTotals?.total_turns ?? 0,
       weeklyTurns: turnTotals?.weekly_turns ?? 0,
+      monthlyTurns: turnTotals?.monthly_turns ?? 0,
       weeklyRank: viewerRankingRow?.rank_position ?? null,
       weeklyRankScore: viewerRankingRow?.total_tokens ?? null,
     };

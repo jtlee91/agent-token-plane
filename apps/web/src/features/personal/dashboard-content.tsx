@@ -228,6 +228,13 @@ export function DashboardContent({
       )} · LLM 호출 ${formatCount(dashboard.weeklyLLMCalls)}`,
     },
     {
+      label: "이번 달",
+      value: formatTokenAmount(dashboard.monthlyTokens),
+      helper: `세션 ${formatCount(dashboard.monthlySessions)} · 프롬프트 ${formatCount(
+        dashboard.monthlyTurns,
+      )} · LLM 호출 ${formatCount(dashboard.monthlyLLMCalls)}`,
+    },
+    {
       label: "전체",
       value: formatTokenAmount(dashboard.totalTokens),
       helper: `세션 ${formatCount(dashboard.activeSessions)} · 프롬프트 ${formatCount(
@@ -264,7 +271,7 @@ export function DashboardContent({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-0 px-6 pb-2 pt-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-0 px-6 pb-2 pt-4 sm:grid-cols-2 lg:grid-cols-4">
           {heroMetrics.map((metric, index) => (
             <div
               key={metric.label}

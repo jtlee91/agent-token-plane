@@ -110,6 +110,10 @@ export type DashboardData = {
   weeklyTurns: number;
   weeklyLLMCalls: number;
   weeklySessions: number;
+  monthlyTokens: number;
+  monthlyTurns: number;
+  monthlyLLMCalls: number;
+  monthlySessions: number;
   connectedDevices: number;
   weeklyRank: number | null;
   weeklyRankScore: number | null;
