@@ -263,6 +263,7 @@ export function summarizeUsageDailyDashboard(
   let activeSessions = 0;
   let totalLLMCalls = 0;
   let weeklySessions = 0;
+  let weeklyLLMCalls = 0;
   let lastUploadAt: string | null = null;
 
   for (const row of rows) {
@@ -288,6 +289,7 @@ export function summarizeUsageDailyDashboard(
     if (usageDate >= weekStartKey) {
       weeklyTokens += rowTotal;
       weeklySessions += row.session_count;
+      weeklyLLMCalls += row.llm_call_count;
     }
 
     const daily = dailyUsageByDate.get(usageDate);
@@ -332,6 +334,7 @@ export function summarizeUsageDailyDashboard(
     totalLLMCalls,
     activeSessions,
     weeklyTurns: 0,
+    weeklyLLMCalls,
     weeklySessions,
     connectedDevices: devices.size,
     weeklyRank: null,
@@ -389,6 +392,7 @@ export function summarizeUsageSessions(
   let totalLLMCalls = 0;
   let weeklyTurns = 0;
   let weeklySessions = 0;
+  let weeklyLLMCalls = 0;
   let lastUploadAt: string | null = null;
 
   for (const row of rows) {
@@ -408,6 +412,7 @@ export function summarizeUsageSessions(
       weeklyTokens += rowTotal;
       weeklyTurns += row.user_turn_count;
       weeklySessions += 1;
+      weeklyLLMCalls += row.llm_call_count;
     }
 
     const dateKey = koreaDateKey(endedAt);
@@ -453,6 +458,7 @@ export function summarizeUsageSessions(
     totalLLMCalls,
     activeSessions: rows.length,
     weeklyTurns,
+    weeklyLLMCalls,
     weeklySessions,
     connectedDevices: 0,
     weeklyRank: null,

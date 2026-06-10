@@ -208,6 +208,7 @@ export const supabaseDataProvider: TokenPlaneDataProvider = {
         totalLLMCalls: 0,
         activeSessions: 0,
         weeklyTurns: 0,
+        weeklyLLMCalls: 0,
         weeklySessions: 0,
         connectedDevices: 0,
         weeklyRank: null,
@@ -227,8 +228,9 @@ export const supabaseDataProvider: TokenPlaneDataProvider = {
     }
 
     const supabase = await createClient();
-    const [dailyResult, sessionsResult, rankingResult] = await Promise.all([
-      supabase
+    const [dailyResult, sessionsResult, rankingResult, turnTotalsResult] =
+      await Promise.all([
+        supabase
         .from("usage_daily")
         .select(
           [
@@ -271,9 +273,15 @@ export const supabaseDataProvider: TokenPlaneDataProvider = {
         .eq("user_id", viewer.userId)
         .order("ended_at", { ascending: false })
         .limit(5),
-      getWeeklyRankingRows(),
-    ]);
+        getWeeklyRankingRows(),
+        supabase.rpc("get_turn_totals"),
+      ]);
 
+    const turnTotals =
+      ((turnTotalsResult.data ?? []) as {
+        total_turns: number;
+        weekly_turns: number;
+      }[])[0] ?? null;
     const viewerRankingRow = rankingResult.find((row) => row.is_viewer) ?? null;
     const dailyRows = (dailyResult.data ?? []) as unknown as UsageDailyAggregateRow[];
     const sessionRows = (sessionsResult.data ??
@@ -315,6 +323,8 @@ export const supabaseDataProvider: TokenPlaneDataProvider = {
 
     return {
       ...dashboard,
+      activeTurns: turnTotals?.total_turns ?? 0,
+      weeklyTurns: turnTotals?.weekly_turns ?? 0,
       weeklyRank: viewerRankingRow?.rank_position ?? null,
       weeklyRankScore: viewerRankingRow?.total_tokens ?? null,
     };

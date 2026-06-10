@@ -28,6 +28,7 @@ const emptyDashboardData: DashboardData = {
   totalLLMCalls: 0,
   activeSessions: 0,
   weeklyTurns: 0,
+  weeklyLLMCalls: 0,
   weeklySessions: 0,
   connectedDevices: 0,
   weeklyRank: null,

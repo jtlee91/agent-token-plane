@@ -190,12 +190,18 @@ export function DashboardContent({
       value: formatTokenAmount(dashboard.weeklyTokens),
       helper: `${numberFormatter.format(
         dashboard.weeklySessions,
-      )} sessions · ${numberFormatter.format(dashboard.totalLLMCalls)} calls`,
+      )} sessions · ${numberFormatter.format(
+        dashboard.weeklyTurns,
+      )} prompts · ${numberFormatter.format(dashboard.weeklyLLMCalls)} calls`,
     },
     {
       label: "전체",
       value: formatTokenAmount(dashboard.totalTokens),
-      helper: `${numberFormatter.format(dashboard.activeSessions)} sessions`,
+      helper: `${numberFormatter.format(
+        dashboard.activeSessions,
+      )} sessions · ${numberFormatter.format(
+        dashboard.activeTurns,
+      )} prompts · ${numberFormatter.format(dashboard.totalLLMCalls)} calls`,
     },
   ];
 
@@ -218,10 +224,6 @@ export function DashboardContent({
               <span className="font-mono font-black">
                 {formatDateTime(dashboard.lastUploadAt)}
               </span>
-            </p>
-            <p className="mt-1">
-              {numberFormatter.format(dashboard.totalLLMCalls)} LLM calls
-              uploaded
             </p>
           </div>
         </div>
