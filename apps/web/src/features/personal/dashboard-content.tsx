@@ -24,7 +24,41 @@ function formatDateTime(value: string | null) {
   })
     .format(new Date(value))
     .replace(/\s+/g, " ")
+    // "06. 11." -> "06.11." (월·일은 붙이고 시간 앞 공백만 유지)
+    .replace(/(\d{2})\. (\d{2})\./, "$1.$2.")
     .trim();
+}
+
+// 1,000 미만은 그대로, 이상은 K/M으로 축약 (44.0K -> 44K)
+function formatCount(value: number) {
+  if (value < 1000) {
+    return numberFormatter.format(value);
+  }
+
+  return formatTokenAmount(value).replace(/\.0(?=[KMBT]$)/, "");
+}
+
+function formatLastSyncRelative(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const diffMs = Date.now() - new Date(value).getTime();
+  const minutes = Math.floor(diffMs / 60_000);
+
+  if (minutes < 1) {
+    return "방금 동기화됨";
+  }
+  if (minutes < 60) {
+    return `${minutes}분 전 동기화`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${hours}시간 전 동기화`;
+  }
+
+  return `${formatDateTime(value)} 동기화`;
 }
 
 function formatSessionTime(startedAt: string, endedAt: string) {
@@ -189,20 +223,16 @@ export function DashboardContent({
     {
       label: "이번 주",
       value: formatTokenAmount(dashboard.weeklyTokens),
-      helper: `${numberFormatter.format(
-        dashboard.weeklySessions,
-      )} sessions · ${numberFormatter.format(
+      helper: `세션 ${formatCount(dashboard.weeklySessions)} · 프롬프트 ${formatCount(
         dashboard.weeklyTurns,
-      )} prompts · ${numberFormatter.format(dashboard.weeklyLLMCalls)} calls`,
+      )} · LLM 호출 ${formatCount(dashboard.weeklyLLMCalls)}`,
     },
     {
       label: "전체",
       value: formatTokenAmount(dashboard.totalTokens),
-      helper: `${numberFormatter.format(
-        dashboard.activeSessions,
-      )} sessions · ${numberFormatter.format(
+      helper: `세션 ${formatCount(dashboard.activeSessions)} · 프롬프트 ${formatCount(
         dashboard.activeTurns,
-      )} prompts · ${numberFormatter.format(dashboard.totalLLMCalls)} calls`,
+      )} · LLM 호출 ${formatCount(dashboard.totalLLMCalls)}`,
     },
   ];
 
@@ -221,9 +251,12 @@ export function DashboardContent({
           <div className="text-right text-xs font-bold text-muted">
             <p>
               <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-token-green" />
-              마지막 sync{" "}
-              <span className="font-mono font-black tracking-wide">
-                {formatDateTime(dashboard.lastUploadAt)}
+              <span
+                className="font-black tracking-wide"
+                title={formatDateTime(dashboard.lastUploadAt)}
+              >
+                {formatLastSyncRelative(dashboard.lastUploadAt) ??
+                  "동기화 대기 중"}
               </span>
             </p>
           </div>
