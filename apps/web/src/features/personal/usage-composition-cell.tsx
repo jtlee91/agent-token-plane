@@ -37,8 +37,8 @@ export function UsageCompositionCell({
     cursor !== null && cursor.x + TOOLTIP_OFFSET_X + 240 > window.innerWidth;
 
   return (
-    <div className="min-w-0">
-      <div className="text-right font-mono text-sm font-black">
+    <div className="relative min-w-0">
+      <div className="absolute bottom-full right-0 mb-[2px] text-right font-mono text-sm font-black">
         <span
           className="cursor-default"
           onMouseMove={handleMove}
@@ -48,7 +48,7 @@ export function UsageCompositionCell({
         </span>
       </div>
       <div
-        className="-mb-[5px] mt-[2px] py-[5px]"
+        className="-my-[5px] py-[5px]"
         onMouseMove={handleMove}
         onMouseLeave={handleLeave}
       >
