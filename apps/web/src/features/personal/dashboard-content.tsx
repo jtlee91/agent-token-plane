@@ -249,15 +249,17 @@ export function DashboardContent({
             </h1>
           </div>
           <div className="text-right text-xs font-bold text-muted">
-            <p>
+            <p className="group relative cursor-default" tabIndex={0}>
               <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-token-green" />
-              <span
-                className="font-black tracking-wide"
-                title={formatDateTime(dashboard.lastUploadAt)}
-              >
+              <span className="font-black tracking-wide">
                 {formatLastSyncRelative(dashboard.lastUploadAt) ??
                   "동기화 대기 중"}
               </span>
+              {dashboard.lastUploadAt ? (
+                <span className="pointer-events-none absolute right-0 top-full z-10 mt-2 hidden whitespace-nowrap rounded-lg bg-foreground px-3 py-2 font-mono text-xs font-bold tracking-wide text-white shadow-[0_10px_26px_rgba(29,45,37,0.28)] group-hover:block group-focus-visible:block">
+                  {formatDateTime(dashboard.lastUploadAt)}
+                </span>
+              ) : null}
             </p>
           </div>
         </div>
