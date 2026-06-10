@@ -42,10 +42,10 @@ export function UsageCompositionCell({
       onMouseMove={handleMove}
       onMouseLeave={handleLeave}
     >
-      <span className="shrink-0 cursor-default font-mono text-sm font-black">
+      <span className="w-[72px] shrink-0 cursor-default text-right font-mono text-sm font-black">
         {formatTokenAmount(totalTokens)}
       </span>
-      <div className="-my-[5px] w-[180px] shrink-0 py-[5px]">
+      <div className="-my-[5px] min-w-0 flex-1 py-[5px]">
         <div className="flex h-3.5 overflow-hidden rounded-full bg-surface-alt">
           {segments.map((segment) => (
             <span
