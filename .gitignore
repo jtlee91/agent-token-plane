@@ -7,6 +7,13 @@ sessions.zip
 *.sqlite-wal
 coverage.out
 
+# private: docs and tests are not published to GitHub
+docs/
+testdata/
+*_test.go
+*.test.ts
+*.test.tsx
+
 # web app
 apps/web/.next/
 apps/web/out/
