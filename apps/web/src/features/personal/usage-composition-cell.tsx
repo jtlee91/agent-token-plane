@@ -37,21 +37,15 @@ export function UsageCompositionCell({
     cursor !== null && cursor.x + TOOLTIP_OFFSET_X + 240 > window.innerWidth;
 
   return (
-    <div className="relative min-w-0">
-      <div className="absolute bottom-full right-0 mb-[2px] text-right font-mono text-sm font-black">
-        <span
-          className="cursor-default"
-          onMouseMove={handleMove}
-          onMouseLeave={handleLeave}
-        >
-          {formatTokenAmount(totalTokens)}
-        </span>
-      </div>
-      <div
-        className="-my-[5px] py-[5px]"
-        onMouseMove={handleMove}
-        onMouseLeave={handleLeave}
-      >
+    <div
+      className="flex min-w-0 items-center justify-end gap-2.5"
+      onMouseMove={handleMove}
+      onMouseLeave={handleLeave}
+    >
+      <span className="shrink-0 cursor-default font-mono text-sm font-black">
+        {formatTokenAmount(totalTokens)}
+      </span>
+      <div className="-my-[5px] w-[180px] shrink-0 py-[5px]">
         <div className="flex h-3.5 overflow-hidden rounded-full bg-surface-alt">
           {segments.map((segment) => (
             <span
