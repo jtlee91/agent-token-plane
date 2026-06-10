@@ -11,6 +11,76 @@ import {
 } from "@/lib/data/models";
 import { formatTokenAmount } from "@/lib/format/tokens";
 
+const CLAUDE_COLOR = "#d97757";
+const CODEX_COLOR = "#10a37f";
+
+function providerPillBackground(claudeTokens: number, codexTokens: number) {
+  const total = claudeTokens + codexTokens;
+
+  if (total <= 0) {
+    return "#9aa8a0";
+  }
+
+  // 한쪽이 극소량이어도 슬리버가 보이도록 4~96%로 클램프한다
+  const rawPct = (claudeTokens / total) * 100;
+  const claudePct =
+    claudeTokens === 0
+      ? 0
+      : codexTokens === 0
+        ? 100
+        : Math.min(96, Math.max(4, Math.round(rawPct)));
+
+  return `linear-gradient(90deg, ${CLAUDE_COLOR} 0 ${claudePct}%, ${CODEX_COLOR} ${claudePct}% 100%)`;
+}
+
+function ProviderScorePill({
+  claudeTokens,
+  codexTokens,
+  scoreLabel,
+  featured,
+}: {
+  claudeTokens: number;
+  codexTokens: number;
+  scoreLabel: string;
+  featured: boolean;
+}) {
+  const total = claudeTokens + codexTokens;
+  const claudePct = total > 0 ? Math.round((claudeTokens / total) * 100) : 0;
+  const codexPct = total > 0 ? 100 - claudePct : 0;
+
+  return (
+    <span
+      className={
+        featured
+          ? "group relative col-start-2 inline-flex min-w-[128px] items-center justify-center justify-self-start rounded-full px-5 py-2 font-mono text-xl font-black text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.35)] sm:col-start-auto sm:justify-self-auto"
+          : "group relative col-start-2 inline-flex min-w-[108px] items-center justify-center justify-self-start rounded-full px-4 py-1.5 font-mono text-sm font-black text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.35)] sm:col-start-auto sm:justify-self-auto"
+      }
+      style={{ background: providerPillBackground(claudeTokens, codexTokens) }}
+      tabIndex={0}
+    >
+      {scoreLabel}
+      {total > 0 ? (
+        <span className="pointer-events-none absolute bottom-full right-0 z-10 mb-2 hidden whitespace-nowrap rounded-lg bg-foreground px-3.5 py-2.5 text-left font-sans text-xs font-bold leading-6 text-white shadow-[0_10px_26px_rgba(29,45,37,0.28)] [text-shadow:none] group-hover:block group-focus-visible:block">
+          <span className="flex items-center gap-2">
+            <span
+              className="size-2 rounded-[3px]"
+              style={{ background: CLAUDE_COLOR }}
+            />
+            Claude Code {formatTokenAmount(claudeTokens)} · {claudePct}%
+          </span>
+          <span className="flex items-center gap-2">
+            <span
+              className="size-2 rounded-[3px]"
+              style={{ background: CODEX_COLOR }}
+            />
+            Codex {formatTokenAmount(codexTokens)} · {codexPct}%
+          </span>
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 function RankMark({ rank }: { rank: number }) {
   if (rank === 1) {
     return (
@@ -107,19 +177,13 @@ export function RankingContent({
                     >
                       {entry.displayName}
                     </p>
-                    <p className="mt-1 truncate text-xs font-bold text-muted">
-                      {entry.badgeName} · {entry.movement}
-                    </p>
                   </div>
-                  <p
-                    className={
-                      featured
-                        ? "col-start-2 font-mono text-2xl font-black sm:col-start-auto"
-                        : "col-start-2 font-mono text-base font-black sm:col-start-auto"
-                    }
-                  >
-                    {entry.scoreLabel}
-                  </p>
+                  <ProviderScorePill
+                    claudeTokens={entry.claudeTokens}
+                    codexTokens={entry.codexTokens}
+                    scoreLabel={entry.scoreLabel}
+                    featured={featured}
+                  />
                 </article>
               );
             })}

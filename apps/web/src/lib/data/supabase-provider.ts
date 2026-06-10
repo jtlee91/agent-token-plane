@@ -35,6 +35,8 @@ type WeeklyRankingRow = {
   output_tokens: number;
   cache_tokens: number;
   total_tokens: number;
+  claude_tokens: number;
+  codex_tokens: number;
   is_viewer: boolean | null;
 };
 
@@ -342,6 +344,8 @@ export const supabaseDataProvider: TokenPlaneDataProvider = {
         badgeName: "미획득",
         movement: "Global weekly",
         scoreLabel: formatTokenAmount(row.total_tokens),
+        claudeTokens: row.claude_tokens,
+        codexTokens: row.codex_tokens,
       }));
 
     const viewerRow = viewer?.userId

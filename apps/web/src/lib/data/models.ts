@@ -17,6 +17,8 @@ export type RankingEntry = {
   badgeName: string;
   movement: string;
   scoreLabel: string;
+  claudeTokens: number;
+  codexTokens: number;
 };
 
 export type ViewerRankingSummary = {
