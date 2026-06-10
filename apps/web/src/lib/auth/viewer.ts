@@ -2,6 +2,7 @@ import "server-only";
 
 import type { User } from "@supabase/supabase-js";
 
+import { trustedAvatarUrl } from "@/lib/avatar";
 import { hasPublicSupabaseEnv } from "@/lib/env";
 import type { ViewerProfile } from "@/lib/data/models";
 import { createClient } from "@/lib/supabase/server";
@@ -35,12 +36,10 @@ function makeDefaultDisplayName(user: User) {
 }
 
 function makeAvatarUrl(user: User) {
-  const metadataAvatar =
-    user.user_metadata?.avatar_url || user.user_metadata?.picture;
-
-  return typeof metadataAvatar === "string" && metadataAvatar.trim()
-    ? metadataAvatar.trim()
-    : null;
+  // user_metadata는 사용자가 직접 수정할 수 있으므로 검증된 URL만 신뢰한다
+  return trustedAvatarUrl(
+    user.user_metadata?.avatar_url || user.user_metadata?.picture,
+  );
 }
 
 function toViewer(profile: ProfileRow, user: User): ViewerProfile {

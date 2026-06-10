@@ -1,5 +1,6 @@
 import Image from "next/image";
 
+import { trustedAvatarUrl } from "@/lib/avatar";
 import type { ViewerProfile } from "@/lib/data/models";
 
 export function ViewerAvatar({
@@ -9,10 +10,12 @@ export function ViewerAvatar({
   viewer: ViewerProfile;
   size?: number;
 }) {
-  if (viewer.avatarUrl) {
+  const avatarUrl = trustedAvatarUrl(viewer.avatarUrl);
+
+  if (avatarUrl) {
     return (
       <Image
-        src={viewer.avatarUrl}
+        src={avatarUrl}
         alt={`${viewer.displayName}의 프로필 이미지`}
         width={size}
         height={size}

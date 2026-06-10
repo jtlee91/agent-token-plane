@@ -9,6 +9,7 @@ import {
   type ViewerRankingSummary,
   type ViewerWeeklyUsageSummary,
 } from "@/lib/data/models";
+import { trustedAvatarUrl } from "@/lib/avatar";
 import { formatTokenAmount } from "@/lib/format/tokens";
 
 const CLAUDE_COLOR = "#d97757";
@@ -89,11 +90,12 @@ function EntryAvatar({
   featured: boolean;
 }) {
   const size = featured ? 36 : 30;
+  const avatarUrl = trustedAvatarUrl(entry.avatarUrl);
 
-  if (entry.avatarUrl) {
+  if (avatarUrl) {
     return (
       <Image
-        src={entry.avatarUrl}
+        src={avatarUrl}
         alt=""
         width={size}
         height={size}
