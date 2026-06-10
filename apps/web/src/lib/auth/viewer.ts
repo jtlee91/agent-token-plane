@@ -10,6 +10,7 @@ type ProfileRow = {
   user_id: string;
   display_name: string;
   avatar_style: string;
+  avatar_url: string | null;
   ranking_opt_in: boolean;
 };
 
@@ -55,14 +56,23 @@ function toViewer(profile: ProfileRow, user: User): ViewerProfile {
 
 async function getOrCreateProfile(user: User): Promise<ProfileRow | null> {
   const supabase = await createClient();
+  const avatarUrl = makeAvatarUrl(user);
   const { data: existingProfile } = await supabase
     .from("profiles")
-    .select("user_id, display_name, avatar_style, ranking_opt_in")
+    .select("user_id, display_name, avatar_style, avatar_url, ranking_opt_in")
     .eq("user_id", user.id)
     .maybeSingle<ProfileRow>();
 
   if (existingProfile) {
-    return existingProfile;
+    // 구글 프로필 이미지가 바뀌었으면 랭킹 등 공개 화면용으로 동기화해둔다
+    if (existingProfile.avatar_url !== avatarUrl) {
+      await supabase
+        .from("profiles")
+        .update({ avatar_url: avatarUrl })
+        .eq("user_id", user.id);
+    }
+
+    return { ...existingProfile, avatar_url: avatarUrl };
   }
 
   const displayName = makeDefaultDisplayName(user);
@@ -72,9 +82,10 @@ async function getOrCreateProfile(user: User): Promise<ProfileRow | null> {
       user_id: user.id,
       display_name: displayName,
       avatar_style: "gradient",
+      avatar_url: avatarUrl,
       ranking_opt_in: true,
     })
-    .select("user_id, display_name, avatar_style, ranking_opt_in")
+    .select("user_id, display_name, avatar_style, avatar_url, ranking_opt_in")
     .single<ProfileRow>();
 
   if (error) {
@@ -82,6 +93,7 @@ async function getOrCreateProfile(user: User): Promise<ProfileRow | null> {
       user_id: user.id,
       display_name: displayName,
       avatar_style: "gradient",
+      avatar_url: avatarUrl,
       ranking_opt_in: true,
     };
   }

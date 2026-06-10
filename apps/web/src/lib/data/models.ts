@@ -15,6 +15,7 @@ export type ViewerProfile = {
 export type RankingEntry = {
   rank: number;
   displayName: string;
+  avatarUrl?: string | null;
   badgeName: string;
   movement: string;
   scoreLabel: string;

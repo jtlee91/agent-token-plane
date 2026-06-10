@@ -31,6 +31,7 @@ type WeeklyRankingRow = {
   rank_position: number;
   display_name: string;
   avatar_style: string;
+  avatar_url: string | null;
   input_tokens: number;
   output_tokens: number;
   cache_tokens: number;
@@ -341,6 +342,7 @@ export const supabaseDataProvider: TokenPlaneDataProvider = {
       .map((row) => ({
         rank: row.rank_position,
         displayName: row.display_name,
+        avatarUrl: row.avatar_url,
         badgeName: "미획득",
         movement: "Global weekly",
         scoreLabel: formatTokenAmount(row.total_tokens),

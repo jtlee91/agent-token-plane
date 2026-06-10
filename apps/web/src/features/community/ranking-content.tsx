@@ -81,6 +81,38 @@ function ProviderScorePill({
   );
 }
 
+function EntryAvatar({
+  entry,
+  featured,
+}: {
+  entry: RankingEntry;
+  featured: boolean;
+}) {
+  const size = featured ? 36 : 30;
+
+  if (entry.avatarUrl) {
+    return (
+      <Image
+        src={entry.avatarUrl}
+        alt=""
+        width={size}
+        height={size}
+        className="shrink-0 rounded-full object-cover"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+
+  return (
+    <span
+      className="grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-token-green to-code-blue font-black text-white"
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.42) }}
+    >
+      {entry.displayName.trim().charAt(0).toUpperCase() || "T"}
+    </span>
+  );
+}
+
 function RankMark({ rank }: { rank: number }) {
   if (rank === 1) {
     return (
@@ -193,7 +225,8 @@ export function RankingContent({
                   }
                 >
                   <RankMark rank={entry.rank} />
-                  <div className="min-w-0">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <EntryAvatar entry={entry} featured={featured} />
                     <p
                       className={
                         featured
