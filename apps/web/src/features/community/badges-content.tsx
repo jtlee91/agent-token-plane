@@ -10,8 +10,8 @@ function BadgeCard({ badge }: { badge: BadgeDefinition }) {
     <article
       className={
         earned
-          ? "rounded-lg border border-border bg-surface p-5"
-          : "rounded-lg border border-border bg-white/60 p-5"
+          ? "flex h-full flex-col rounded-lg border border-border bg-surface p-5"
+          : "flex h-full flex-col rounded-lg border border-border bg-white/60 p-5"
       }
     >
       <div className="flex items-start justify-between gap-3">
@@ -57,14 +57,14 @@ function BadgeCard({ badge }: { badge: BadgeDefinition }) {
         {badge.description}
       </p>
       {earned ? (
-        <>
-          <p className="mt-3 rounded-md bg-token-green/10 px-2.5 py-2 text-sm font-extrabold leading-5">
+        <div className="mt-auto pt-3">
+          <p className="rounded-md bg-token-green/10 px-2.5 py-2 text-sm font-extrabold leading-5">
             {badge.progress}
           </p>
           <p className="mt-2.5 text-xs font-semibold text-muted">
             {badge.earnedAt} 획득
           </p>
-        </>
+        </div>
       ) : null}
     </article>
   );
