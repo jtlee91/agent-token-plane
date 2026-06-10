@@ -4,6 +4,7 @@ import {
   formatTokenSharePercent,
   tokenSharePercent,
 } from "@/lib/format/tokens";
+import { UsageCompositionCell } from "./usage-composition-cell";
 
 const numberFormatter = new Intl.NumberFormat("ko-KR");
 
@@ -41,23 +42,23 @@ function SessionTimeCell({
     >
       <div className="relative h-[54px]">
         <span className="absolute left-[6px] top-[9px] h-9 w-px rounded-full bg-border" />
-        <span className="absolute left-[2px] top-[4px] h-2.5 w-2.5 rounded-full bg-code-blue" />
-        <span className="absolute bottom-[4px] left-[2px] h-2.5 w-2.5 rounded-full bg-token-green" />
+        <span className="absolute left-[2px] top-[4px] h-2.5 w-2.5 rounded-full bg-foreground" />
+        <span className="absolute bottom-[4px] left-[2px] h-2.5 w-2.5 rounded-full border-2 border-muted bg-surface" />
       </div>
       <div className="relative h-[54px] min-w-0">
         <div className="absolute left-0 right-0 top-[1px] flex h-4 min-w-0 items-center gap-2 whitespace-nowrap">
-          <span className="w-9 shrink-0 text-[10px] font-black uppercase leading-none text-muted">
+          <span className="w-10 shrink-0 text-[10px] font-black uppercase leading-none tracking-[0.08em] text-muted">
             Start
           </span>
-          <span className="truncate font-mono text-[11px] font-black leading-none text-muted">
+          <span className="truncate font-mono text-[11px] font-black leading-none tracking-[0.05em] text-muted">
             {formatDateTime(startedAt)}
           </span>
         </div>
         <div className="absolute bottom-[1px] left-0 right-0 flex h-4 min-w-0 items-center gap-2 whitespace-nowrap">
-          <span className="w-9 shrink-0 text-[10px] font-black uppercase leading-none text-muted">
+          <span className="w-10 shrink-0 text-[10px] font-black uppercase leading-none tracking-[0.08em] text-muted">
             End
           </span>
-          <span className="truncate font-mono text-[11px] font-black leading-none text-muted">
+          <span className="truncate font-mono text-[11px] font-black leading-none tracking-[0.05em] text-muted">
             {formatDateTime(endedAt)}
           </span>
         </div>
@@ -296,62 +297,59 @@ export function DashboardContent({
       <section className="rounded-lg border border-border bg-surface p-5">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xl font-black">최근 세션</h2>
-          <span className="rounded-full border border-border bg-background px-3 py-1 text-xs font-extrabold text-muted">
-            {numberFormatter.format(dashboard.recentSessions.length)} shown
-          </span>
+          <div className="flex items-center gap-3.5 text-[11px] font-black text-muted">
+            <span>
+              <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-code-blue" />
+              입력
+            </span>
+            <span>
+              <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-token-green" />
+              캐시
+            </span>
+            <span>
+              <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-badge-gold" />
+              출력
+            </span>
+          </div>
         </div>
         {dashboard.recentSessions.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[880px] table-fixed border-separate border-spacing-0 text-left text-sm">
+            <table className="w-full min-w-[640px] table-fixed border-separate border-spacing-0 text-left text-sm">
               <colgroup>
-                <col className="w-[11.5rem]" />
-                <col className="w-[6.5rem]" />
-                <col className="w-[12rem]" />
-                <col className="w-[4.7rem]" />
-                <col className="w-[4.3rem]" />
-                <col className="w-[5.3rem]" />
-                <col className="w-[5.5rem]" />
-                <col className="w-[5.6rem]" />
-                <col className="w-[5.6rem]" />
+                <col className="w-[25%]" />
+                <col className="w-[17%]" />
+                <col className="w-[16%]" />
+                <col className="w-[42%]" />
               </colgroup>
               <thead>
                 <tr className="text-xs font-extrabold uppercase text-muted">
-                  <th className="border-b border-border px-3 py-2">Device</th>
-                  <th className="border-b border-border px-3 py-2">Provider</th>
-                  <th className="border-b border-border px-3 py-2">Time</th>
-                  <th className="border-b border-border px-3 py-2 text-right">
-                    Prompts
+                  <th className="border-b border-border px-3 py-2">
+                    에이전트 · 기기
+                  </th>
+                  <th className="border-b border-border px-3 py-2">
+                    세션 시간
+                  </th>
+                  <th className="border-b border-border px-3 py-2 text-center">
+                    프롬프트 · 호출
                   </th>
                   <th className="border-b border-border px-3 py-2 text-right">
-                    Calls
-                  </th>
-                  <th className="border-b border-border px-3 py-2 text-right">
-                    Input
-                  </th>
-                  <th className="border-b border-border px-3 py-2 text-right">
-                    Cache
-                  </th>
-                  <th className="border-b border-border px-3 py-2 text-right">
-                    Output
-                  </th>
-                  <th className="border-b border-border px-3 py-2 text-right">
-                    Total
+                    총 사용량 · 구성
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {dashboard.recentSessions.map((session) => (
                   <tr key={`${session.provider}-${session.sessionHash}`}>
-                    <td className="border-b border-border px-3 py-3 font-bold text-muted">
+                    <td className="border-b border-border px-3 py-3">
+                      <span className="block font-black">
+                        {session.providerLabel}
+                      </span>
                       <span
-                        className="block max-w-[10rem] truncate"
+                        className="mt-[3px] block max-w-[12rem] truncate text-[11px] font-extrabold text-muted"
                         title={session.deviceLabel}
                       >
                         {session.deviceLabel}
                       </span>
-                    </td>
-                    <td className="border-b border-border px-3 py-3 font-black">
-                      {session.providerLabel}
                     </td>
                     <td className="border-b border-border px-3 py-3">
                       <SessionTimeCell
@@ -359,23 +357,22 @@ export function DashboardContent({
                         endedAt={session.endedAt}
                       />
                     </td>
-                    <td className="whitespace-nowrap border-b border-border px-3 py-3 text-right font-mono font-black">
-                      {numberFormatter.format(session.userTurnCount)}
+                    <td className="whitespace-nowrap border-b border-border px-3 py-3 text-center font-mono">
+                      <span className="font-black">
+                        {numberFormatter.format(session.userTurnCount)}
+                      </span>
+                      <span className="mx-1 text-border">·</span>
+                      <span className="font-extrabold text-muted">
+                        {numberFormatter.format(session.llmCallCount)}
+                      </span>
                     </td>
-                    <td className="whitespace-nowrap border-b border-border px-3 py-3 text-right font-mono font-black">
-                      {numberFormatter.format(session.llmCallCount)}
-                    </td>
-                    <td className="whitespace-nowrap border-b border-border px-3 py-3 text-right font-mono font-bold">
-                      {formatTokenAmount(session.inputTokens)}
-                    </td>
-                    <td className="whitespace-nowrap border-b border-border px-3 py-3 text-right font-mono font-bold">
-                      {formatTokenAmount(session.cacheTokens)}
-                    </td>
-                    <td className="whitespace-nowrap border-b border-border px-3 py-3 text-right font-mono font-bold">
-                      {formatTokenAmount(session.outputTokens)}
-                    </td>
-                    <td className="whitespace-nowrap border-b border-border px-3 py-3 text-right font-mono font-black">
-                      {formatTokenAmount(session.totalTokens)}
+                    <td className="border-b border-border px-3 py-3">
+                      <UsageCompositionCell
+                        inputTokens={session.inputTokens}
+                        cacheTokens={session.cacheTokens}
+                        outputTokens={session.outputTokens}
+                        totalTokens={session.totalTokens}
+                      />
                     </td>
                   </tr>
                 ))}
