@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>최근 세션 테이블 — 개선안 v2</title>
+    <style>
+      :root {
+        --background: #f7faf8;
+        --foreground: #17211a;
+        --surface: #ffffff;
+        --surface-alt: #eef2f1;
+        --muted: #64716a;
+        --border: #d9e2dc;
+        --code-blue: #2563eb;
+        --token-green: #18a058;
+        --badge-gold: #d97706;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(
+            circle at 15% 0%,
+            rgba(24, 160, 88, 0.11),
+            transparent 28rem
+          ),
+          linear-gradient(180deg, #fbfdfb 0%, var(--background) 42%, #edf4f0 100%);
+        color: var(--foreground);
+        font-family:
+          Pretendard, Inter, ui-sans-serif, system-ui, -apple-system,
+          BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      main {
+        width: min(1280px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 28px 0 52px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 950;
+      }
+
+      .note {
+        max-width: 860px;
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 800;
+        line-height: 1.6;
+      }
+
+      .option {
+        margin-top: 26px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        padding: 22px;
+      }
+
+      .option-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 6px;
+      }
+
+      .option-head h2 {
+        margin: 0;
+        font-size: 19px;
+        font-weight: 950;
+      }
+
+      .option-desc {
+        margin: 0 0 18px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.6;
+      }
+
+      .tag {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--background);
+        padding: 4px 12px;
+        font-size: 11px;
+        font-weight: 900;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        padding: 20px;
+      }
+
+      .card-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      .card-head h3 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 950;
+      }
+
+      .pill {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--background);
+        padding: 4px 12px;
+        font-size: 12px;
+        font-weight: 900;
+        color: var(--muted);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        table-layout: fixed;
+        text-align: left;
+        font-size: 14px;
+      }
+
+      th {
+        border-bottom: 1px solid var(--border);
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      td {
+        border-bottom: 1px solid var(--border);
+        padding: 12px;
+        vertical-align: middle;
+      }
+
+      .num {
+        text-align: right;
+        white-space: nowrap;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      td.num {
+        font-weight: 800;
+      }
+
+      td.num.strong {
+        font-weight: 950;
+      }
+
+      .provider {
+        font-weight: 950;
+      }
+
+      .sub {
+        display: block;
+        margin-top: 3px;
+        font-size: 11px;
+        font-weight: 800;
+        color: var(--muted);
+        max-width: 12rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* ===== SessionTimeCell 재현 ===== */
+      .time-cell {
+        display: grid;
+        grid-template-columns: 14px minmax(0, 1fr);
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .time-rail {
+        position: relative;
+        height: 54px;
+      }
+
+      .time-rail .line {
+        position: absolute;
+        left: 6px;
+        top: 9px;
+        height: 36px;
+        width: 1px;
+        border-radius: 999px;
+        background: var(--border);
+      }
+
+      .time-rail .dot {
+        position: absolute;
+        left: 2px;
+        height: 10px;
+        width: 10px;
+        border-radius: 999px;
+      }
+
+      .time-rail .dot.start {
+        top: 4px;
+        background: var(--foreground);
+      }
+
+      .time-rail .dot.end {
+        bottom: 4px;
+        background: var(--surface);
+        border: 2px solid var(--muted);
+      }
+
+      .time-labels {
+        position: relative;
+        height: 54px;
+        min-width: 0;
+      }
+
+      .time-row {
+        position: absolute;
+        left: 0;
+        right: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 16px;
+        white-space: nowrap;
+      }
+
+      .time-row.start {
+        top: 1px;
+      }
+
+      .time-row.end {
+        bottom: 1px;
+      }
+
+      .time-row .k {
+        width: 40px;
+        flex-shrink: 0;
+        font-size: 10px;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        line-height: 1;
+        color: var(--muted);
+      }
+
+      .time-row .v {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+        font-weight: 950;
+        letter-spacing: 0.05em;
+        line-height: 1;
+        color: var(--muted);
+      }
+
+      /* ===== 합쳐진 카운트 셀 ===== */
+      .center {
+        text-align: center;
+      }
+
+      .pair {
+        text-align: center;
+        white-space: nowrap;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-weight: 950;
+      }
+
+      .pair .sep {
+        margin: 0 4px;
+        color: var(--border);
+        font-weight: 800;
+      }
+
+      .pair .second {
+        color: var(--muted);
+        font-weight: 800;
+      }
+
+      /* ===== 스택 바 + 즉시 툴팁 ===== */
+      .usage-cell {
+        position: relative;
+        min-width: 0;
+      }
+
+      .usage-total {
+        text-align: right;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-weight: 950;
+        font-size: 14px;
+      }
+
+      .bar-hit {
+        padding: 5px 0;
+        margin: 2px 0 -5px;
+      }
+
+      .stack-bar {
+        display: flex;
+        height: 14px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: var(--surface-alt);
+      }
+
+      .stack-bar i {
+        display: block;
+        height: 100%;
+      }
+
+      .stack-bar .in {
+        background: var(--code-blue);
+      }
+
+      .stack-bar .ca {
+        background: var(--token-green);
+      }
+
+      .stack-bar .out {
+        background: var(--badge-gold);
+      }
+
+      /* 네이티브 title 대신 CSS 툴팁: hover 즉시 표시 */
+      .tooltip {
+        position: fixed;
+        z-index: 10;
+        display: none;
+        pointer-events: none;
+        white-space: nowrap;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--foreground);
+        color: #fff;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.7;
+        box-shadow: 0 6px 18px rgba(23, 33, 26, 0.18);
+      }
+
+      .tooltip b {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-weight: 950;
+      }
+
+      .tooltip .dot-i {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        margin-right: 6px;
+      }
+
+      .tooltip-total {
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid rgba(255, 255, 255, 0.25);
+      }
+
+      .legend {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        font-size: 11px;
+        font-weight: 900;
+        color: var(--muted);
+      }
+
+      .legend i {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        margin-right: 5px;
+      }
+
+      /* ===== 네이밍 후보 비교 ===== */
+      .naming-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 14px;
+      }
+
+      .naming-card {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--background);
+        padding: 14px 16px;
+      }
+
+      .naming-card h4 {
+        margin: 0 0 4px;
+        font-size: 14px;
+        font-weight: 950;
+      }
+
+      .naming-card p {
+        margin: 0 0 12px;
+        font-size: 12px;
+        font-weight: 800;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .naming-card table {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        overflow: hidden;
+      }
+
+      .naming-card th,
+      .naming-card td {
+        padding: 7px 12px;
+      }
+
+      .naming-card tr:last-child td {
+        border-bottom: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>최근 세션 테이블 — 확정안</h1>
+      <p class="note">
+        에이전트·기기 합침 / 프롬프트 · 호출 네이밍 / 총 사용량 + 구성 비율
+        바. 툴팁에 전체 토큰 수를 추가했습니다.
+      </p>
+
+      <!-- ========== 확정안 ========== -->
+      <section class="option">
+        <div class="option-head">
+          <h2>확정안 — 총 사용량 + 구성 비율 바</h2>
+          <span class="tag">4컬럼 · 즉시 툴팁 (전체 포함)</span>
+        </div>
+        <p class="option-desc">
+          바에 마우스를 올리면 입력/캐시/출력 상세와 전체 토큰 수가 바로
+          뜹니다.
+        </p>
+        <div class="card">
+          <div class="card-head">
+            <h3>최근 세션</h3>
+            <div class="legend">
+              <span><i style="background: var(--code-blue)"></i>입력</span>
+              <span><i style="background: var(--token-green)"></i>캐시</span>
+              <span><i style="background: var(--badge-gold)"></i>출력</span>
+            </div>
+          </div>
+          <table>
+            <colgroup>
+              <col style="width: 25%" />
+              <col style="width: 17%" />
+              <col style="width: 16%" />
+              <col style="width: 42%" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>에이전트 · 기기</th>
+                <th>세션 시간</th>
+                <th class="center">프롬프트 · 호출</th>
+                <th class="num">총 사용량 · 구성</th>
+              </tr>
+            </thead>
+            <tbody id="rows-b"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const sessions = [
+        { device: "Jeongtaekui-MacBookPro.local", provider: "Codex", start: "06.10.PM02:05", end: "06.10.PM03:01", prompts: 12, calls: 57, input: 533600, cache: 3800000, output: 39200 },
+        { device: "Jeongtaekui-MacBookPro.local", provider: "Codex", start: "06.10.PM02:08", end: "06.10.PM02:29", prompts: 4, calls: 4, input: 18000, cache: 61400, output: 454 },
+        { device: "Jeongtaekui-MacBookPro.local", provider: "Claude Code", start: "06.10.AM08:30", end: "06.10.AM08:35", prompts: 1, calls: 11, input: 7800, cache: 605500, output: 13100 },
+        { device: "Jeongtaekui-MacBookPro.local", provider: "Claude Code", start: "06.10.AM08:29", end: "06.10.AM08:29", prompts: 1, calls: 3, input: 2000, cache: 68500, output: 931 },
+        { device: "Jeongtaekui-MacBookPro.local", provider: "Codex", start: "06.06.PM09:16", end: "06.07.PM11:20", prompts: 29, calls: 75, input: 641400, cache: 3700000, output: 53600 },
+      ];
+
+      const nf = new Intl.NumberFormat("ko-KR");
+
+      function fmt(n) {
+        if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
+        if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
+        return nf.format(n);
+      }
+
+      function total(s) {
+        return s.input + s.cache + s.output;
+      }
+
+      function timeCell(s) {
+        return `
+          <div class="time-cell">
+            <div class="time-rail">
+              <span class="line"></span>
+              <span class="dot start"></span>
+              <span class="dot end"></span>
+            </div>
+            <div class="time-labels">
+              <div class="time-row start"><span class="k">Start</span><span class="v">${s.start}</span></div>
+              <div class="time-row end"><span class="k">End</span><span class="v">${s.end}</span></div>
+            </div>
+          </div>`;
+      }
+
+      function providerDeviceCell(s) {
+        return `
+          <td>
+            <span class="provider">${s.provider}</span>
+            <span class="sub" title="${s.device}">${s.device}</span>
+          </td>`;
+      }
+
+      function pairCell(s) {
+        return `
+          <td class="pair">
+            ${nf.format(s.prompts)}<span class="sep">·</span><span class="second">${nf.format(s.calls)}</span>
+          </td>`;
+      }
+
+      function usageCell(s) {
+        const t = total(s);
+        const pct = (v) => ((v / t) * 100).toFixed(1);
+        return `
+          <td class="usage-cell">
+            <div class="usage-total"><span class="total-hit">${fmt(t)}</span></div>
+            <div class="bar-hit">
+              <div class="stack-bar">
+                <i class="in" style="width:${pct(s.input)}%"></i>
+                <i class="ca" style="width:${pct(s.cache)}%"></i>
+                <i class="out" style="width:${pct(s.output)}%"></i>
+              </div>
+            </div>
+            <div class="tooltip">
+              <span class="dot-i" style="background: var(--code-blue)"></span>입력 <b>${fmt(s.input)}</b> (${pct(s.input)}%)<br />
+              <span class="dot-i" style="background: var(--token-green)"></span>캐시 <b>${fmt(s.cache)}</b> (${pct(s.cache)}%)<br />
+              <span class="dot-i" style="background: var(--badge-gold)"></span>출력 <b>${fmt(s.output)}</b> (${pct(s.output)}%)
+              <div class="tooltip-total">전체 <b>${nf.format(t)}</b> 토큰</div>
+            </div>
+          </td>`;
+      }
+
+      // 툴팁이 마우스를 따라다니도록
+      document.addEventListener("mousemove", (e) => {
+        const hit = e.target.closest?.(".bar-hit, .total-hit");
+        const cell = hit?.closest(".usage-cell");
+        document.querySelectorAll(".usage-cell .tooltip").forEach((tip) => {
+          if (cell && cell.contains(tip)) {
+            tip.style.display = "block";
+            const r = tip.getBoundingClientRect();
+            let x = e.clientX + 14;
+            let y = e.clientY - r.height - 12;
+            if (x + r.width > window.innerWidth - 8) x = e.clientX - r.width - 14;
+            if (y < 8) y = e.clientY + 18;
+            tip.style.left = x + "px";
+            tip.style.top = y + "px";
+          } else {
+            tip.style.display = "none";
+          }
+        });
+      });
+
+      // ===== 확정안 =====
+      document.getElementById("rows-b").innerHTML = sessions
+        .map(
+          (s) => `
+          <tr>
+            ${providerDeviceCell(s)}
+            <td>${timeCell(s)}</td>
+            ${pairCell(s)}
+            ${usageCell(s)}
+          </tr>`,
+        )
+        .join("");
+    </script>
+  </body>
+</html>
