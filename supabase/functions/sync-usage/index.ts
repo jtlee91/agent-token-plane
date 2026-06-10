@@ -195,18 +195,35 @@ Deno.serve(async (req: Request) => {
   }
 
   const syncedAt = new Date().toISOString();
-  const { error: deviceError } = await supabase
-    .from("usage_devices")
-    .upsert({
-      user_id: userID,
-      device_id: payload.device.device_id,
-      device_label: payload.device.device_label.trim(),
-      platform: payload.device.platform,
-      last_seen_at: syncedAt,
-    }, { onConflict: "user_id,device_id" });
 
-  if (deviceError) {
-    return jsonResponse({ error: "database_error", detail: deviceError.message }, 500);
+  if (existingDevice) {
+    // 기존 기기는 라벨을 건드리지 않는다 (웹에서 바꾼 이름이 호스트명으로 되돌아가지 않도록)
+    const { error: deviceError } = await supabase
+      .from("usage_devices")
+      .update({
+        platform: payload.device.platform,
+        last_seen_at: syncedAt,
+      })
+      .eq("user_id", userID)
+      .eq("device_id", payload.device.device_id);
+
+    if (deviceError) {
+      return jsonResponse({ error: "database_error", detail: deviceError.message }, 500);
+    }
+  } else {
+    const { error: deviceError } = await supabase
+      .from("usage_devices")
+      .insert({
+        user_id: userID,
+        device_id: payload.device.device_id,
+        device_label: payload.device.device_label.trim(),
+        platform: payload.device.platform,
+        last_seen_at: syncedAt,
+      });
+
+    if (deviceError) {
+      return jsonResponse({ error: "database_error", detail: deviceError.message }, 500);
+    }
   }
 
   const dailyRows = payload.daily.map((daily) => ({
