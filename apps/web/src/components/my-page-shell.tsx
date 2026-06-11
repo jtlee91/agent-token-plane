@@ -19,8 +19,11 @@ export function MyPageShell({
 }) {
   return (
     <div className="grid gap-5 lg:grid-cols-[230px_minmax(0,1fr)]">
-      <aside className="self-start rounded-lg border border-border bg-surface p-4 lg:sticky lg:top-24">
-        <nav aria-label="마이페이지 탭" className="grid gap-2 lg:grid-cols-1">
+      <aside className="self-start rounded-lg border border-border bg-surface p-1.5 lg:sticky lg:top-24 lg:p-4">
+        <nav
+          aria-label="마이페이지 탭"
+          className="flex gap-1.5 lg:grid lg:grid-cols-1 lg:gap-2"
+        >
           {tabs.map((tab) => {
             const active = activeTab === tab.key;
 
@@ -31,8 +34,8 @@ export function MyPageShell({
                 aria-current={active ? "page" : undefined}
                 className={
                   active
-                    ? "inline-flex min-h-10 items-center rounded-r-md border-l-[3px] border-token-green bg-token-green/10 px-3 py-2 text-sm font-extrabold text-token-green focus-visible:outline focus-visible:outline-2 focus-visible:outline-code-blue"
-                    : "inline-flex min-h-10 items-center rounded-r-md border-l-[3px] border-transparent px-3 py-2 text-sm font-extrabold text-muted hover:bg-surface-alt hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-code-blue"
+                    ? "inline-flex min-h-10 flex-1 items-center justify-center rounded-md bg-token-green/10 px-3 py-2 text-sm font-extrabold text-token-green shadow-[inset_0_-2px_0_var(--token-green)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-code-blue lg:flex-none lg:justify-start lg:rounded-none lg:rounded-r-md lg:border-l-[3px] lg:border-token-green lg:shadow-none"
+                    : "inline-flex min-h-10 flex-1 items-center justify-center rounded-md px-3 py-2 text-sm font-extrabold text-muted hover:bg-surface-alt hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-code-blue lg:flex-none lg:justify-start lg:rounded-none lg:rounded-r-md lg:border-l-[3px] lg:border-transparent"
                 }
               >
                 {tab.label}

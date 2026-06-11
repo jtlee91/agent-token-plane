@@ -216,11 +216,11 @@ function InstallSkeleton() {
 function MyPageFrame({ children }: { children: ReactNode }) {
   return (
     <div className="grid gap-5 lg:grid-cols-[230px_minmax(0,1fr)]">
-      <aside className="self-start rounded-lg border border-border bg-surface p-4">
-        <div className="grid gap-2">
-          <SkeletonBlock className="h-10 w-full" />
-          <SkeletonBlock className="h-10 w-full" />
-          <SkeletonBlock className="h-10 w-full" />
+      <aside className="self-start rounded-lg border border-border bg-surface p-1.5 lg:p-4">
+        <div className="flex gap-1.5 lg:grid lg:grid-cols-1 lg:gap-2">
+          <SkeletonBlock className="h-10 flex-1 lg:w-full" />
+          <SkeletonBlock className="h-10 flex-1 lg:w-full" />
+          <SkeletonBlock className="h-10 flex-1 lg:w-full" />
         </div>
       </aside>
       <div className="min-w-0">{children}</div>
