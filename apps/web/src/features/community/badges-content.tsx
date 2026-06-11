@@ -96,7 +96,7 @@ export function BadgesContent({
             {viewer.displayName}님의 배지 컬렉션
           </h1>
           <p className="mt-3 hidden max-w-2xl text-base font-semibold leading-7 text-muted sm:block">
-            코딩 습관에 따라 자동으로 획득되는 배지입니다. 새 배지는 동기화
+            에이전트 사용 패턴에 따라 자동으로 획득되는 배지입니다. 새 배지는 동기화
             시 바로 반영돼요.
           </p>
         </div>
