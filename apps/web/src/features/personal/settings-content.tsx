@@ -138,7 +138,7 @@ export function SettingsContent({
         </p>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -226,7 +226,7 @@ export function SettingsContent({
             </span>
           </h2>
           {devices.length > 0 ? (
-            <div className="mt-5 grid gap-3">
+            <div className="mt-5 grid grid-cols-1 gap-3">
               {devices.map((device) => {
                 const revoked = device.status === "revoked";
                 const renaming = renamingDeviceId === device.id;

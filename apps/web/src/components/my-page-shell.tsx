@@ -18,7 +18,7 @@ export function MyPageShell({
   children: ReactNode;
 }) {
   return (
-    <div className="grid gap-5 lg:grid-cols-[230px_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[230px_minmax(0,1fr)]">
       <aside className="self-start rounded-lg border border-border bg-surface p-1.5 lg:sticky lg:top-24 lg:p-4">
         <nav
           aria-label="마이페이지 탭"

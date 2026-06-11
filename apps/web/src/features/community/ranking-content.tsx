@@ -218,7 +218,7 @@ export function RankingContent({
         </div>
 
         {entries.length > 0 ? (
-          <div className="grid gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {entries.map((entry) => {
               const featured = entry.rank === 1;
 
