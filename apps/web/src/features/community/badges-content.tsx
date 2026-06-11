@@ -1,5 +1,6 @@
 import Image from "next/image";
 
+import { BadgesShowcase } from "@/features/community/badges-showcase";
 import type { BadgeDefinition } from "@/lib/data/models";
 import type { ViewerProfile } from "@/lib/data/models";
 
@@ -91,10 +92,10 @@ export function BadgesContent({
           <p className="text-sm font-extrabold text-token-green">
             마이페이지 · 배지
           </p>
-          <h1 className="mt-2 text-3xl font-black tracking-normal sm:text-4xl">
+          <h1 className="mt-2 text-xl font-black tracking-normal sm:text-4xl">
             {viewer.displayName}의 배지 컬렉션
           </h1>
-          <p className="mt-3 max-w-2xl text-base font-semibold leading-7 text-muted">
+          <p className="mt-3 hidden max-w-2xl text-base font-semibold leading-7 text-muted sm:block">
             코딩 습관에 따라 자동으로 획득되는 배지입니다. 새 배지는 동기화
             시 바로 반영돼요.
           </p>
@@ -119,8 +120,10 @@ export function BadgesContent({
 
       {badges.length > 0 ? (
         <>
+          <BadgesShowcase badges={[...earnedBadges, ...lockedBadges]} />
+
           {earnedBadges.length > 0 ? (
-            <section>
+            <section className="hidden sm:block">
               <h2 className="flex items-center gap-2 text-base font-black">
                 획득한 배지
                 <span className="rounded-full bg-token-green/10 px-2.5 py-0.5 text-xs font-extrabold text-token-green">
@@ -136,7 +139,7 @@ export function BadgesContent({
           ) : null}
 
           {lockedBadges.length > 0 ? (
-            <section>
+            <section className="hidden sm:block">
               <h2 className="flex items-center gap-2 text-base font-black">
                 도전 중
                 <span className="rounded-full bg-background px-2.5 py-0.5 text-xs font-extrabold text-muted">
