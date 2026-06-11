@@ -6,6 +6,8 @@ import {
 } from "@/lib/format/tokens";
 import { AgentUsageBar } from "./agent-usage-bar";
 import { DailyFlowChart } from "./daily-flow-chart";
+import { HeroMetricsChips } from "./hero-metrics-chips";
+import { RecentSessionsAccordion } from "./recent-sessions-accordion";
 import { UsageCompositionCell } from "./usage-composition-cell";
 
 const numberFormatter = new Intl.NumberFormat("ko-KR");
@@ -15,20 +17,22 @@ function formatDateTime(value: string | null) {
     return "아직 없음";
   }
 
-  return new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    // 서버 로케일에 따라 오전/오후·AM/PM이 섞여 나오지 않도록 24시간제로 고정
-    hourCycle: "h23",
-  })
-    .format(new Date(value))
-    .replace(/\s+/g, " ")
-    // "06. 11." -> "06.11." (월·일은 붙이고 시간 앞 공백만 유지)
-    .replace(/(\d{2})\. (\d{2})\./, "$1.$2.")
-    .trim();
+  return (
+    new Intl.DateTimeFormat("ko-KR", {
+      timeZone: "Asia/Seoul",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      // 서버 로케일에 따라 오전/오후·AM/PM이 섞여 나오지 않도록 24시간제로 고정
+      hourCycle: "h23",
+    })
+      .format(new Date(value))
+      .replace(/\s+/g, " ")
+      // "06. 11." -> "06.11." (월·일은 붙이고 시간 앞 공백만 유지)
+      .replace(/(\d{2})\. (\d{2})\./, "$1.$2.")
+      .trim()
+  );
 }
 
 // 1,000 미만은 그대로, 이상은 K/M으로 축약 (44.0K -> 44K)
@@ -330,7 +334,7 @@ export function DashboardContent({
             <p className="text-sm font-extrabold text-token-green">
               마이페이지 · 대시보드
             </p>
-            <h1 className="mt-1.5 text-[28px] font-black tracking-normal">
+            <h1 className="mt-1.5 text-xl font-black tracking-normal sm:text-[28px]">
               {viewer.displayName}의 개인 토큰 흐름
             </h1>
           </div>
@@ -350,7 +354,22 @@ export function DashboardContent({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-0 px-6 pb-2 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+        <HeroMetricsChips
+          metrics={heroMetrics.map((metric) => ({
+            label: metric.label,
+            value: metric.value,
+            delta: metric.delta,
+            counts: metric.counts
+              ? {
+                  sessions: formatCount(metric.counts.sessions),
+                  prompts: formatCount(metric.counts.prompts),
+                  llmCalls: formatCount(metric.counts.llmCalls),
+                }
+              : null,
+          }))}
+        />
+
+        <div className="hidden grid-cols-1 gap-0 px-6 pb-2 pt-4 sm:grid sm:grid-cols-2 lg:grid-cols-4">
           {heroMetrics.map((metric, index) => (
             <div
               key={metric.label}
@@ -517,72 +536,75 @@ export function DashboardContent({
           </div>
         </div>
         {dashboard.recentSessions.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] table-fixed border-separate border-spacing-0 text-left text-sm">
-              <colgroup>
-                <col className="w-[25%]" />
-                <col className="w-[25%]" />
-                <col className="w-[12%]" />
-                <col className="w-[38%]" />
-              </colgroup>
-              <thead>
-                <tr className="text-xs font-extrabold uppercase text-muted">
-                  <th className="border-b border-border px-3 py-2">
-                    에이전트 · 기기
-                  </th>
-                  <th className="border-b border-border px-3 py-2">
-                    세션 시간
-                  </th>
-                  <th className="border-b border-border px-3 py-2 text-center">
-                    프롬프트 · 호출
-                  </th>
-                  <th className="border-b border-border px-3 py-2 text-right">
-                    총 사용량 · 구성
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {dashboard.recentSessions.map((session) => (
-                  <tr key={`${session.provider}-${session.sessionHash}`}>
-                    <td className="border-b border-border px-3 py-3">
-                      <span className="block font-black">
-                        {session.providerLabel}
-                      </span>
-                      <span
-                        className="mt-[3px] block max-w-[12rem] truncate text-[11px] font-extrabold text-muted"
-                        title={session.deviceLabel}
-                      >
-                        {session.deviceLabel}
-                      </span>
-                    </td>
-                    <td className="border-b border-border px-3 py-3">
-                      <SessionTimeCell
-                        startedAt={session.startedAt}
-                        endedAt={session.endedAt}
-                      />
-                    </td>
-                    <td className="whitespace-nowrap border-b border-border px-3 py-3 text-center font-mono">
-                      <span className="font-black">
-                        {numberFormatter.format(session.userTurnCount)}
-                      </span>
-                      <span className="mx-1 text-border">·</span>
-                      <span className="font-extrabold text-muted">
-                        {numberFormatter.format(session.llmCallCount)}
-                      </span>
-                    </td>
-                    <td className="border-b border-border px-3 py-3">
-                      <UsageCompositionCell
-                        inputTokens={session.inputTokens}
-                        cacheTokens={session.cacheTokens}
-                        outputTokens={session.outputTokens}
-                        totalTokens={session.totalTokens}
-                      />
-                    </td>
+          <>
+            <RecentSessionsAccordion sessions={dashboard.recentSessions} />
+            <div className="hidden overflow-x-auto sm:block">
+              <table className="w-full min-w-[640px] table-fixed border-separate border-spacing-0 text-left text-sm">
+                <colgroup>
+                  <col className="w-[25%]" />
+                  <col className="w-[25%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[38%]" />
+                </colgroup>
+                <thead>
+                  <tr className="text-xs font-extrabold uppercase text-muted">
+                    <th className="border-b border-border px-3 py-2">
+                      에이전트 · 기기
+                    </th>
+                    <th className="border-b border-border px-3 py-2">
+                      세션 시간
+                    </th>
+                    <th className="border-b border-border px-3 py-2 text-center">
+                      프롬프트 · 호출
+                    </th>
+                    <th className="border-b border-border px-3 py-2 text-right">
+                      총 사용량 · 구성
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {dashboard.recentSessions.map((session) => (
+                    <tr key={`${session.provider}-${session.sessionHash}`}>
+                      <td className="border-b border-border px-3 py-3">
+                        <span className="block font-black">
+                          {session.providerLabel}
+                        </span>
+                        <span
+                          className="mt-[3px] block max-w-[12rem] truncate text-[11px] font-extrabold text-muted"
+                          title={session.deviceLabel}
+                        >
+                          {session.deviceLabel}
+                        </span>
+                      </td>
+                      <td className="border-b border-border px-3 py-3">
+                        <SessionTimeCell
+                          startedAt={session.startedAt}
+                          endedAt={session.endedAt}
+                        />
+                      </td>
+                      <td className="whitespace-nowrap border-b border-border px-3 py-3 text-center font-mono">
+                        <span className="font-black">
+                          {numberFormatter.format(session.userTurnCount)}
+                        </span>
+                        <span className="mx-1 text-border">·</span>
+                        <span className="font-extrabold text-muted">
+                          {numberFormatter.format(session.llmCallCount)}
+                        </span>
+                      </td>
+                      <td className="border-b border-border px-3 py-3">
+                        <UsageCompositionCell
+                          inputTokens={session.inputTokens}
+                          cacheTokens={session.cacheTokens}
+                          outputTokens={session.outputTokens}
+                          totalTokens={session.totalTokens}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : (
           <p className="rounded-md border border-dashed border-border bg-background p-4 text-sm font-bold leading-6 text-muted">
             세션 단위 데이터는 로컬에만 저장됩니다.
