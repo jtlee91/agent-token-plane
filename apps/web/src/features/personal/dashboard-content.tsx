@@ -335,7 +335,7 @@ export function DashboardContent({
               마이페이지 · 대시보드
             </p>
             <h1 className="mt-1.5 text-xl font-black tracking-normal sm:text-[28px]">
-              {viewer.displayName}의 개인 토큰 흐름
+              {viewer.displayName}님의 토큰 사용 흐름
             </h1>
           </div>
           <div className="text-right text-xs font-bold text-muted">
