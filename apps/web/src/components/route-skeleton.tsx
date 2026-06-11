@@ -133,19 +133,45 @@ function DashboardSkeleton() {
   );
 }
 
-// 배지: 제목 + 4열 배지 카드 그리드
+// 배지: 제목+달성도 히어로 카드 → 섹션 라벨 → 4열 배지 카드 그리드
 function BadgesSkeleton() {
   return (
     <div className="space-y-5">
-      <Card>
-        <SkeletonBlock className="h-4 w-12" />
-        <SkeletonBlock className="mt-2 h-9 w-56" />
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => (
-            <SkeletonBlock key={index} className="h-36 rounded-lg" />
-          ))}
+      <Card className="flex flex-wrap items-center justify-between gap-8">
+        <div>
+          <SkeletonBlock className="h-4 w-24" />
+          <SkeletonBlock className="mt-2 h-10 w-80 max-w-full" />
+          <SkeletonBlock className="mt-3 h-4 w-96 max-w-full" />
+        </div>
+        <div className="w-full max-w-xs">
+          <div className="flex items-center justify-between">
+            <SkeletonBlock className="h-4 w-24" />
+            <SkeletonBlock className="h-4 w-16" />
+          </div>
+          <SkeletonBlock className="mt-2 h-2.5 w-full rounded-full" />
         </div>
       </Card>
+      <section>
+        <SkeletonBlock className="h-6 w-28" />
+        <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => (
+            <div
+              key={index}
+              className="rounded-lg border border-border bg-surface p-5"
+            >
+              <div className="flex items-start justify-between">
+                <SkeletonBlock className="size-[62px] rounded-full" />
+                <SkeletonBlock className="h-7 w-14 rounded-full" />
+              </div>
+              <SkeletonBlock className="mt-5 h-6 w-24" />
+              <SkeletonBlock className="mt-3 h-4 w-full" />
+              <SkeletonBlock className="mt-2 h-4 w-2/3" />
+              <SkeletonBlock className="mt-4 h-11 w-full" />
+              <SkeletonBlock className="mt-3 h-4 w-28" />
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
