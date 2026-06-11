@@ -100,11 +100,24 @@ export type DashboardSession = {
   syncedAt: string | null;
 };
 
+// 기간별 에이전트/토큰 구성 분해 — 히어로 지표 호버 상세에 사용한다
+export type UsageBreakdownSummary = {
+  claudeTokens: number;
+  codexTokens: number;
+  inputTokens: number;
+  cacheTokens: number;
+  outputTokens: number;
+};
+
 export type DashboardData = {
   todayTokens: number;
   todayTurns: number;
   todayLLMCalls: number;
   todaySessions: number;
+  todayBreakdown: UsageBreakdownSummary;
+  weeklyBreakdown: UsageBreakdownSummary;
+  monthlyBreakdown: UsageBreakdownSummary;
+  totalBreakdown: UsageBreakdownSummary;
   weeklyTokens: number;
   totalTokens: number;
   activeTurns: number;

@@ -200,11 +200,23 @@ export async function grantEligibleBadgesForViewer() {
 export const supabaseDataProvider: TokenPlaneDataProvider = {
   async getDashboardData(viewer): Promise<DashboardData> {
     if (!hasPublicSupabaseEnv() || !viewer.userId) {
+      const emptyBreakdown = () => ({
+        claudeTokens: 0,
+        codexTokens: 0,
+        inputTokens: 0,
+        cacheTokens: 0,
+        outputTokens: 0,
+      });
+
       return {
         todayTokens: 0,
         todayTurns: 0,
         todayLLMCalls: 0,
         todaySessions: 0,
+        todayBreakdown: emptyBreakdown(),
+        weeklyBreakdown: emptyBreakdown(),
+        monthlyBreakdown: emptyBreakdown(),
+        totalBreakdown: emptyBreakdown(),
         weeklyTokens: 0,
         totalTokens: 0,
         activeTurns: 0,

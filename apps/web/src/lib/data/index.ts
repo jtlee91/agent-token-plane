@@ -20,11 +20,23 @@ const emptyRankingPageData: RankingPageData = {
   viewerShareSlug: null,
 };
 
+const emptyUsageBreakdown = {
+  claudeTokens: 0,
+  codexTokens: 0,
+  inputTokens: 0,
+  cacheTokens: 0,
+  outputTokens: 0,
+};
+
 const emptyDashboardData: DashboardData = {
   todayTokens: 0,
   todayTurns: 0,
   todayLLMCalls: 0,
   todaySessions: 0,
+  todayBreakdown: { ...emptyUsageBreakdown },
+  weeklyBreakdown: { ...emptyUsageBreakdown },
+  monthlyBreakdown: { ...emptyUsageBreakdown },
+  totalBreakdown: { ...emptyUsageBreakdown },
   weeklyTokens: 0,
   totalTokens: 0,
   activeTurns: 0,

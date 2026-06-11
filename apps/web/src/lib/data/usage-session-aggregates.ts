@@ -4,6 +4,7 @@ import type {
   DashboardData,
   DashboardSession,
   DashboardTokenBreakdown,
+  UsageBreakdownSummary,
 } from "./models.ts";
 
 const KOREA_OFFSET_MS = 9 * 60 * 60 * 1000;
@@ -153,6 +154,36 @@ function maxTimestamp(...values: Array<string | null | undefined>) {
   );
 }
 
+function emptyPeriodBreakdown(): UsageBreakdownSummary {
+  return {
+    claudeTokens: 0,
+    codexTokens: 0,
+    inputTokens: 0,
+    cacheTokens: 0,
+    outputTokens: 0,
+  };
+}
+
+function addToPeriodBreakdown(
+  target: UsageBreakdownSummary,
+  provider: string,
+  inputTokens: number,
+  outputTokens: number,
+  cacheTokens: number,
+) {
+  const total = inputTokens + outputTokens + cacheTokens;
+
+  if (provider === "claude" || provider === "claude_code") {
+    target.claudeTokens += total;
+  } else {
+    target.codexTokens += total;
+  }
+
+  target.inputTokens += inputTokens;
+  target.outputTokens += outputTokens;
+  target.cacheTokens += cacheTokens;
+}
+
 function emptyBreakdown(): DashboardTokenBreakdown {
   return {
     input: 0,
@@ -283,6 +314,10 @@ export function summarizeUsageDailyDashboard(
   let todayTokens = 0;
   let todaySessions = 0;
   let todayLLMCalls = 0;
+  const todayBreakdown = emptyPeriodBreakdown();
+  const weeklyBreakdown = emptyPeriodBreakdown();
+  const monthlyBreakdown = emptyPeriodBreakdown();
+  const totalBreakdown = emptyPeriodBreakdown();
   let weeklyTokens = 0;
   let totalTokens = 0;
   let activeSessions = 0;
@@ -312,22 +347,51 @@ export function summarizeUsageDailyDashboard(
       devices.add(row.device_id);
     }
 
+    addToPeriodBreakdown(
+      totalBreakdown,
+      row.provider,
+      row.input_tokens,
+      row.output_tokens,
+      row.cache_tokens,
+    );
+
     if (usageDate === todayKey) {
       todayTokens += rowTotal;
       todaySessions += row.session_count;
       todayLLMCalls += row.llm_call_count;
+      addToPeriodBreakdown(
+        todayBreakdown,
+        row.provider,
+        row.input_tokens,
+        row.output_tokens,
+        row.cache_tokens,
+      );
     }
 
     if (usageDate >= weekStartKey) {
       weeklyTokens += rowTotal;
       weeklySessions += row.session_count;
       weeklyLLMCalls += row.llm_call_count;
+      addToPeriodBreakdown(
+        weeklyBreakdown,
+        row.provider,
+        row.input_tokens,
+        row.output_tokens,
+        row.cache_tokens,
+      );
     }
 
     if (usageDate >= monthStartKey) {
       monthlyTokens += rowTotal;
       monthlySessions += row.session_count;
       monthlyLLMCalls += row.llm_call_count;
+      addToPeriodBreakdown(
+        monthlyBreakdown,
+        row.provider,
+        row.input_tokens,
+        row.output_tokens,
+        row.cache_tokens,
+      );
     }
 
     if (usageDate >= prevWeekStartKey && usageDate < weekStartKey) {
@@ -377,6 +441,10 @@ export function summarizeUsageDailyDashboard(
     todayTurns: 0,
     todayLLMCalls,
     todaySessions,
+    todayBreakdown,
+    weeklyBreakdown,
+    monthlyBreakdown,
+    totalBreakdown,
     weeklyTokens,
     totalTokens,
     activeTurns: 0,
@@ -447,6 +515,10 @@ export function summarizeUsageSessions(
   let todayTurns = 0;
   let todaySessions = 0;
   let todayLLMCalls = 0;
+  const todayBreakdown = emptyPeriodBreakdown();
+  const weeklyBreakdown = emptyPeriodBreakdown();
+  const monthlyBreakdown = emptyPeriodBreakdown();
+  const totalBreakdown = emptyPeriodBreakdown();
   let weeklyTokens = 0;
   let totalTokens = 0;
   let activeTurns = 0;
@@ -471,11 +543,26 @@ export function summarizeUsageSessions(
     totalLLMCalls += row.llm_call_count;
     addToBreakdown(tokenBreakdown, row);
 
+    addToPeriodBreakdown(
+      totalBreakdown,
+      row.provider,
+      row.input_tokens,
+      row.output_tokens,
+      row.cache_tokens,
+    );
+
     if (endedAt >= todayStart) {
       todayTokens += rowTotal;
       todayTurns += row.user_turn_count;
       todaySessions += 1;
       todayLLMCalls += row.llm_call_count;
+      addToPeriodBreakdown(
+        todayBreakdown,
+        row.provider,
+        row.input_tokens,
+        row.output_tokens,
+        row.cache_tokens,
+      );
     }
 
     if (endedAt >= weekStart) {
@@ -483,6 +570,13 @@ export function summarizeUsageSessions(
       weeklyTurns += row.user_turn_count;
       weeklySessions += 1;
       weeklyLLMCalls += row.llm_call_count;
+      addToPeriodBreakdown(
+        weeklyBreakdown,
+        row.provider,
+        row.input_tokens,
+        row.output_tokens,
+        row.cache_tokens,
+      );
     }
 
     if (endedAt >= monthStart) {
@@ -490,6 +584,13 @@ export function summarizeUsageSessions(
       monthlyTurns += row.user_turn_count;
       monthlySessions += 1;
       monthlyLLMCalls += row.llm_call_count;
+      addToPeriodBreakdown(
+        monthlyBreakdown,
+        row.provider,
+        row.input_tokens,
+        row.output_tokens,
+        row.cache_tokens,
+      );
     }
 
     if (endedAt >= prevWeekStart && endedAt < weekStart) {
@@ -540,6 +641,10 @@ export function summarizeUsageSessions(
     todayTurns,
     todayLLMCalls,
     todaySessions,
+    todayBreakdown,
+    weeklyBreakdown,
+    monthlyBreakdown,
+    totalBreakdown,
     weeklyTokens,
     totalTokens,
     activeTurns,
