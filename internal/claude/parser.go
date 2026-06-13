@@ -289,11 +289,10 @@ func usageTotal(usage tokenUsage) int {
 }
 
 func tokenSummary(usage tokenUsage) TokenSummary {
-	cache := usage.CacheCreationInputTokens + usage.CacheReadInputTokens
 	return TokenSummary{
-		Input:  usage.InputTokens,
+		Input:  usage.InputTokens + usage.CacheCreationInputTokens,
 		Output: usage.OutputTokens,
-		Cache:  cache,
+		Cache:  usage.CacheReadInputTokens,
 	}
 }
 
